@@ -19,7 +19,7 @@ To use the `isosurfacing` tool, you must provide an initial mesh file and implic
 
 - `-h, --help` : Show the help message and exit the program.
 - `-t, --threshold` : Set the threshold value for the isosurface generation. This is a `FLOAT` value that defines the precision level of the isosurfacing.
-- `-m, --max-elements` : Set the maximum number of elements in the mesh after refinement. This is an `INT` value that limits the size of the generated mesh. If this value is a negative integer, the mesh will be refined until the threshold value is reached.
+- `-m, --max-elements` : Set the maximum number of elements in the mesh after refinement. This is an `INT` value that limits the size of the generated mesh. If this value is a **negative** number, the mesh will be refined until the threshold value is reached.
 
 ## Example
 
