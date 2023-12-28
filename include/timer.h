@@ -4,12 +4,16 @@
 //
 //  Created by Yiwen Ju on 12/20/23.
 //
+#ifndef timer_h
+#define timer_h
 
 #include <chrono>
 #include <iostream>
 
 //profiling the time of the entire subdivision process.
-//an array of 4 {total time, time spent on double functions, time spent on triple functions, time spent on zero crossing test}
+//an array of 6 {total time, time spent on double functions, time spent on triple functions
+//, time spent on double functions' zero crossing test, time spent on three functions' zero crossing test, total subdivision time}
+
 //currently, the zero crossing test is using linear programming based on Gurobi package.
 
 std::valarray<double> profileTimer = {0,0,0,0,0,0};
@@ -81,5 +85,5 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> starterTime;
 };
 
-
+#endif /*timer_h*/
 

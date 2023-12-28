@@ -3,54 +3,64 @@
 //  adaptive_mesh_refinement
 //
 //  Created by Yiwen Ju on 12/28/23.
-//  the measure of radius ratio is following this git: https://github.com/sandialabs/verdict/tree/master
 
 #ifndef tet_quality_h
 #define tet_quality_h
 
-double tet_radius_ratio(int /*num_nodes*/, const double coordinates[][3])
+#include <subdivide_multi.h>
+
+
+
+std::valarray<double> mult(std::valarray<double>& a, std::valarray<double>& b){
+    double xcross, ycross, zcross;
+    xcross = a[1] * b[2] - a[2] * b[1];
+    ycross = a[2] * b[0] - a[0] * b[2];
+    zcross = a[0] * b[1] - a[1] * b[0];
+
+    return {xcross, ycross, zcross};
+}
+
+double tet_radius_ratio(std::array<valarray<double>,4> &pts)
 {
-
-  // Determine side vectors
-  VerdictVector side[6];
-
-  side[0].set(coordinates[1][0] - coordinates[0][0], coordinates[1][1] - coordinates[0][1],
-    coordinates[1][2] - coordinates[0][2]);
-
-  side[1].set(coordinates[2][0] - coordinates[1][0], coordinates[2][1] - coordinates[1][1],
-    coordinates[2][2] - coordinates[1][2]);
-
-  side[2].set(coordinates[0][0] - coordinates[2][0], coordinates[0][1] - coordinates[2][1],
-    coordinates[0][2] - coordinates[2][2]);
-
-  side[3].set(coordinates[3][0] - coordinates[0][0], coordinates[3][1] - coordinates[0][1],
-    coordinates[3][2] - coordinates[0][2]);
-
-  side[4].set(coordinates[3][0] - coordinates[1][0], coordinates[3][1] - coordinates[1][1],
-    coordinates[3][2] - coordinates[1][2]);
-
-  side[5].set(coordinates[3][0] - coordinates[2][0], coordinates[3][1] - coordinates[2][1],
-    coordinates[3][2] - coordinates[2][2]);
-
-  VerdictVector numerator = side[3].length_squared() * (side[2] * side[0]) +
-    side[2].length_squared() * (side[3] * side[0]) + side[0].length_squared() * (side[3] * side[2]);
-
-  double area_sum;
-  area_sum = ((side[2] * side[0]).length() + (side[3] * side[0]).length() +
-               (side[4] * side[1]).length() + (side[3] * side[2]).length()) *
+    
+    // Determine side vectors
+    std::array<std::valarray<double>, 6> side;
+    for (int i = 0; i < 6; ++i)
+    {
+        side[i].resize(3);
+    }
+    side[0] = {pts[1][0] - pts[0][0], pts[1][1] - pts[0][1],
+        pts[1][2] - pts[0][2]};
+    
+    side[1]={pts[2][0] - pts[1][0], pts[2][1] - pts[1][1],
+        pts[2][2] - pts[1][2]};
+    
+    side[2] = {pts[0][0] - pts[2][0], pts[0][1] - pts[2][1],
+        pts[0][2] - pts[2][2]};
+    
+    side[3] = {pts[3][0] - pts[0][0], pts[3][1] - pts[0][1],
+        pts[3][2] - pts[0][2]};
+    
+    side[4] = {pts[3][0] - pts[1][0], pts[3][1] - pts[1][1],
+        pts[3][2] - pts[1][2]};
+    
+    side[5] = {pts[3][0] - pts[2][0], pts[3][1] - pts[2][1],
+        pts[3][2] - pts[2][2]};
+    
+    std::valarray<double> numerator = dot(side[3], side[3]) * mult(side[2],side[0]) +
+    dot(side[2], side[2]) * mult(side[3] ,side[0]) + dot(side[0], side[0]) * mult(side[3] , side[2]);
+    
+    double area_sum;
+    area_sum = (norm(mult(side[2], side[0]))
+    + norm(mult(side[3], side[0]))
+    + norm(mult(side[4], side[1]))
+    + norm(mult(side[3], side[2]))) *
     0.5;
-
-  double volume = tet_volume(4, coordinates);
-
-  if (std::abs(volume) < VERDICT_DBL_MIN)
-  {
-    return (double)VERDICT_DBL_MAX;
-  }
-  else
-  {
-    const double radius_ratio = numerator.length() * area_sum / (108 * volume * volume);
-    return fix_range(radius_ratio);
-  }
+    
+    double volume = dot(pts[0] - pts[3], cross(pts[1] - pts[3], pts[2] - pts[3]))/6;
+    const double radius_ratio = (108 * volume * volume)/(norm(numerator) * area_sum)  ;
+    return radius_ratio;
+    
 }
 
 #endif /* tet_quality_h */

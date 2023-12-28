@@ -8,6 +8,7 @@
 #include <implicit_functions.h>
 #include <subdivide_multi.h>
 #include <CLI/CLI.hpp>
+#include <tet_quality.h>
 
 
 using namespace mtet;
@@ -194,11 +195,21 @@ int main(int argc, const char *argv[])
                 } });
         }
     }
+    
+    //profiled time(see details in time.h) and profiled number of calls to zero
     std::cout << profileTimer[0] << " " << profileTimer[1] << " " << profileTimer[2] << " " << profileTimer[3] << " " << profileTimer[4] << " " << profileTimer[5] << " " << gurobi_call_two << " " << gurobi_call_three << std::endl;
     
     size_t it = 0;
     mesh.seq_foreach_tet([&](mtet::TetId tid, std::span<const VertexId, 4> data) {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
+        for (int i = 0; i < 4; i++){
+            auto vid = vs[i];
+            auto coords = mesh.get_vertex(vid);
+            pts[i][0] = coords[0];
+            pts[i][1] = coords[1];
+            pts[i][2] = coords[2];
+        }
+        cout << tet_radius_ratio(pts) << " ";
         if(vertex_active_map.contains(vertexHash(vs))){
             if (vertex_active_map[vertexHash(vs)]){
                 activeTet++;

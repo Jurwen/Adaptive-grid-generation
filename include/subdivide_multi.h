@@ -5,7 +5,8 @@
 //  Created by Yiwen Ju on 12/2/23.
 //
 
-
+#ifndef subdivide_multi_h
+#define subdivide_multi_h
 
 
 #include <iostream>
@@ -17,7 +18,6 @@
 
 using namespace std;
 
-//{total time, time spent on double functions, time spent on triple functions, time spent on zero crossing test}
 
 int gurobi_call_two = 0;
 int gurobi_call_three = 0;
@@ -355,3 +355,4 @@ double subTet(std::array<valarray<double>,4> &pts,
     return -1;
 }
 
+#endif /* subdivide_multi_h */
