@@ -12,12 +12,15 @@
 //an array of 4 {total time, time spent on double functions, time spent on triple functions, time spent on zero crossing test}
 //currently, the zero crossing test is using linear programming based on Gurobi package.
 
+std::valarray<double> profileTimer = {0,0,0,0,0,0};
 
 enum timeProfileName{
     total,
     twoFunc,
     threeFunc,
-    gurobi
+    gurobi_twoFunc,
+    gurobi_threeFunc,
+    subdivision
 };
 
 template<typename Fn>
@@ -55,8 +58,14 @@ public:
             case threeFunc:
                 m_timeProfile[2] += ms;
                 break;
-            case gurobi:
+            case gurobi_twoFunc:
                 m_timeProfile[3] += ms;
+                break;
+            case gurobi_threeFunc:
+                m_timeProfile[4] += ms;
+                break;
+            case subdivision:
+                m_timeProfile[5] += ms;
                 break;
             default:
                 std::cout << "no matching time profile identifier" << std::endl;
@@ -68,7 +77,7 @@ public:
 private:
     timeProfileName m_Name;
     Fn m_Func;
-    std::valarray<double> m_timeProfile = {0,0,0,0};
+    std::valarray<double> m_timeProfile = {0,0,0,0,0,0};
     std::chrono::time_point<std::chrono::high_resolution_clock> starterTime;
 };
 

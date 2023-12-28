@@ -3,15 +3,22 @@
 #include <ankerl/unordered_dense.h>
 #include <span>
 #include <queue>
+#include <optional>
 
-#include <subdivide_criteria.h>
 #include <implicit_functions.h>
 #include <subdivide_multi.h>
 #include <CLI/CLI.hpp>
 
-using namespace std;
+
 using namespace mtet;
 
+const bool GLOBAL_ANALYSIS_MODE = false;
+
+uint64_t vertexHash(std::span<VertexId, 4>& x)
+{
+    ankerl::unordered_dense::hash<uint64_t> hash_fn;
+    return hash_fn(value_of(x[0])) + hash_fn(value_of(x[1])) + hash_fn(value_of(x[2])) + hash_fn(value_of(x[3]));
+}
 
 int main(int argc, const char *argv[])
 {
@@ -19,19 +26,18 @@ int main(int argc, const char *argv[])
     {
         string mesh_file;
         string function_file;
-        double threshold = 0.01;
+        double threshold = 0.005;
         int max_elements = -1;
+        //bool analysis_mode = false;
     } args;
     CLI::App app{"Longest Edge Bisection Refinement"};
     app.add_option("mesh", args.mesh_file, "Initial mesh file")->required();
     app.add_option("function", args.function_file, "Implicit function file")->required();
     app.add_option("-t,--threshold", args.threshold, "Threshold value");
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
+    //app.add_option("-a, --analysis", args.analysis_mode, "toggle the analysis mode");
     CLI11_PARSE(app, argc, argv);
-    
-    //testing the args with custom function file:
-    //args.function_file = "/Users/yiwenju/Documents/Research/Irregular-Tet-Grid/Robust-Implicit-Surface-Networks-main/examples/implicit_arrangement/cylSphere.json";
-    
+    //extern const bool analysis = args.analysis_mode;
     if (args.max_elements < 0)
     {
         args.max_elements = numeric_limits<int>::max();
@@ -40,20 +46,6 @@ int main(int argc, const char *argv[])
     
     // Read mesh
     mtet::MTetMesh mesh = mtet::load_mesh(args.mesh_file);
-    
-    // manually create a mesh
-    //    mtet::MTetMesh mesh;
-    //    std::vector<array<double, 3>> vertices = {{0., 0., 0.}, {0., 0., 1.}, {0., 1., 0.}, {0., 1., 1.}, {1., 0.,
-    //                                                       0.}, {1., 0., 1.}, {1., 1., 0.}, {1., 1., 1.}};
-    //    std::vector<array<int, 4>> indices = {{0, 1, 7, 3}, {7, 0, 5, 1}, {4, 0, 5, 7}, {4, 6, 0, 7}, {0, 7, 6, 2}, {7, 2, 0, 3}};
-    //    std::vector<mtet::VertexId> vertex_ids;
-    //    for (auto& v : vertices) {
-    //        vertex_ids.push_back(mesh.add_vertex(v[0], v[1], v[2]));
-    //    }
-    //    for (auto& t : indices) {
-    //        mesh.add_tet(vertex_ids[t[0]], vertex_ids[t[1]], vertex_ids[t[2]], vertex_ids[t[3]]);
-    //    }
-    //    mtet::save_mesh("input.msh", mesh);
     
     // Read implicit function
     vector<unique_ptr<ImplicitFunction<double>>> functions;
@@ -72,8 +64,13 @@ int main(int argc, const char *argv[])
     IndexMap vertex_func_grad_map;
     vertex_func_grad_map.reserve(mesh.get_num_vertices());
     
+    using activeMap = ankerl::unordered_dense::map<uint64_t, bool>;
+    activeMap vertex_active_map;
+    vertex_active_map.reserve(mesh.get_num_tets());
+    
     mesh.seq_foreach_vertex([&](VertexId vid, std::span<const Scalar, 3> data)
                             {
+        
         valarray<array<double, 4>> func_gradList(funcNum);
         for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
             auto &func = functions[funcIter];
@@ -81,8 +78,7 @@ int main(int argc, const char *argv[])
             func_grad[0] = func->evaluate_gradient(data[0], data[1], data[2], func_grad[1], func_grad[2], func_grad[3]);
             func_gradList[funcIter] = func_grad;
         }
-        vertex_func_grad_map[value_of(vid)] = func_gradList; });
-    
+        vertex_func_grad_map[value_of(vid)] = func_gradList;});
     auto comp = [](std::pair<mtet::Scalar, mtet::EdgeId> e0,
                    std::pair<mtet::Scalar, mtet::EdgeId> e1)
     { return e0.first < e1.first; };
@@ -91,9 +87,7 @@ int main(int argc, const char *argv[])
     std::array<valarray<double>, 4> pts;
     std::valarray<std::array<double, 4>> vals(funcNum);
     std::valarray<std::array<std::valarray<double>,4>> grads(funcNum);
-//    std::array<valarray<double>, 4> pts;
-//    std::array<double, 4> vals{0, 0, 0, 0};
-//    std::array<valarray<double>, 4> grads;
+    int activeTet = 0;
     size_t sdim = 3;
     for (int i = 0; i < 4; ++i)
     {
@@ -105,7 +99,8 @@ int main(int argc, const char *argv[])
     
     auto push_longest_edge = [&](mtet::TetId tid)
     {
-        auto vs = mesh.get_tet(tid);
+        std::span<VertexId, 4> vs = mesh.get_tet(tid);
+        bool isActive = 0;
         for (int i = 0; i < 4; ++i)
         {
             auto vid = vs[i];
@@ -114,7 +109,6 @@ int main(int argc, const char *argv[])
             pts[i][1] = coords[1];
             pts[i][2] = coords[2];
             valarray<array<double, 4>> func_gradList(funcNum);
-            
             std::array<double, 4> func_grad;
             if (!vertex_func_grad_map.contains(value_of(vid))) {
                 for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
@@ -137,7 +131,14 @@ int main(int argc, const char *argv[])
             }
             
         }
-        double subResult = subTet(pts, vals, grads, threshold, env);
+        double subResult;
+        {
+            Timer timer(subdivision, [&](auto profileResult){profileTimer += profileResult;});
+            subResult = subTet(pts, vals, grads, threshold, isActive, env);
+        }
+        //cout << isActive << endl;
+        vertex_active_map[vertexHash(vs)] = isActive;
+
         if (subResult != -1)
         {
             mtet::EdgeId longest_edge;
@@ -158,7 +159,7 @@ int main(int argc, const char *argv[])
         return false;
     };
     
-
+    
     {
         Timer timer(total, [&](auto profileResult){profileTimer += profileResult;});
         
@@ -175,7 +176,7 @@ int main(int argc, const char *argv[])
             Q.pop_back();
             if (!mesh.has_edge(eid))
                 continue;
-
+            
             auto [vid, eid0, eid1] = mesh.split_edge(eid);
             //std::cout << "Number of elements: " << mesh.get_num_tets() << std::endl;
             if (mesh.get_num_tets() > args.max_elements) {
@@ -193,10 +194,25 @@ int main(int argc, const char *argv[])
                 } });
         }
     }
+    std::cout << profileTimer[0] << " " << profileTimer[1] << " " << profileTimer[2] << " " << profileTimer[3] << " " << profileTimer[4] << " " << profileTimer[5] << " " << gurobi_call_two << " " << gurobi_call_three << std::endl;
     
-    std::cout << profileTimer[0] << " " << profileTimer[1] << " " << profileTimer[2] << " " << profileTimer[3] << std::endl;
+    size_t it = 0;
+    mesh.seq_foreach_tet([&](mtet::TetId tid, std::span<const VertexId, 4> data) {
+        std::span<VertexId, 4> vs = mesh.get_tet(tid);
+        if(vertex_active_map.contains(vertexHash(vs))){
+            if (vertex_active_map[vertexHash(vs)]){
+                activeTet++;
+                //cout << it+1 << " ";
+            }
+        }
+        it++;
+
+    });
+    
+    
     // Write mesh
-    //std::cout << "Number of elements: " << mesh.get_num_tets() << std::endl;
+    std::cout << "Number of elements: " << mesh.get_num_tets() << std::endl;
+    std::cout << "Number of active elements: " << activeTet << std::endl;
     mtet::save_mesh("output.msh", mesh);
     
     return 0;
