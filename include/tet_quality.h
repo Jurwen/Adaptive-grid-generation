@@ -9,18 +9,22 @@
 
 #include <subdivide_multi.h>
 
+std::array<std::string, 4> tet_metric_labels = {"total tet number: ",
+    "active tet number: ",
+    "minimum radius ratio among all tets: ",
+    "minimum radius ratio amond active tets: "
+};
 
-
-std::valarray<double> mult(std::valarray<double>& a, std::valarray<double>& b){
+std::valarray<double> mult(const std::valarray<double>& a, const std::valarray<double>& b){
     double xcross, ycross, zcross;
     xcross = a[1] * b[2] - a[2] * b[1];
     ycross = a[2] * b[0] - a[0] * b[2];
     zcross = a[0] * b[1] - a[1] * b[0];
-
+    
     return {xcross, ycross, zcross};
 }
 
-double tet_radius_ratio(std::array<valarray<double>,4> &pts)
+double tet_radius_ratio(const std::array<valarray<double>,4> &pts)
 {
     
     // Determine side vectors
@@ -52,15 +56,30 @@ double tet_radius_ratio(std::array<valarray<double>,4> &pts)
     
     double area_sum;
     area_sum = (norm(mult(side[2], side[0]))
-    + norm(mult(side[3], side[0]))
-    + norm(mult(side[4], side[1]))
-    + norm(mult(side[3], side[2]))) *
+                + norm(mult(side[3], side[0]))
+                + norm(mult(side[4], side[1]))
+                + norm(mult(side[3], side[2]))) *
     0.5;
     
     double volume = dot(pts[0] - pts[3], cross(pts[1] - pts[3], pts[2] - pts[3]))/6;
     const double radius_ratio = (108 * volume * volume)/(norm(numerator) * area_sum)  ;
     return radius_ratio;
-    
 }
 
+bool save_metrics(const std::string& filename,
+                  const std::array<std::string, 4>& tet_metric_labels,
+                  const std::valarray<double>& tet_metric)
+{
+    // assert stats_labels.size() == stats.size()
+    using json = nlohmann::json;
+    std::ofstream fout(filename.c_str(),std::ios::app);
+    //fout.open(filename.c_str(),std::ios::app);
+    json jOut;
+    for (size_t i = 0; i < tet_metric.size(); ++i) {
+        jOut[tet_metric_labels[i]] = tet_metric[i];
+    }
+    fout << jOut << std::endl;
+    fout.close();
+    return true;
+}
 #endif /* tet_quality_h */
