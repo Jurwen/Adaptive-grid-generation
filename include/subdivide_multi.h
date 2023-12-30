@@ -113,11 +113,11 @@ double subTet(std::array<valarray<double>,4> &pts,
     double tetEdgeLen[] = {norm(p1-p0),norm(p2-p0), norm(p3-p0), norm(p2-p1), norm(p3-p1), norm(p3-p2)};
     double score = *std::max_element(tetEdgeLen, tetEdgeLen + 6); // find the largest edge length using 6 edges.
     const size_t funcNum = vals.size();
-    valarray<double> gradList[funcNum];
-    valarray<double> valList[funcNum];
-    valarray<double> diffList[funcNum];
-    double errorList[funcNum];
-    bool activeTF[funcNum];
+    valarray<valarray<double>> gradList(funcNum);
+    valarray<valarray<double>> valList(funcNum);
+    valarray<valarray<double>> diffList(funcNum);
+    valarray<double> errorList(funcNum);
+    valarray<bool> activeTF(funcNum);
     int activeNum = 0;
     valarray<valarray<bool>> zeroXResult(valarray<bool>(funcNum), funcNum);
     //valarray<double> funcInt[funcNum];
@@ -183,7 +183,7 @@ double subTet(std::array<valarray<double>,4> &pts,
     
     if(activeNum < 2)
         return -1;
-    int activeFunc[activeNum];
+    valarray<int> activeFunc(activeNum);
     int activeFuncIter = 0;
     for (int funcIter = 0; funcIter < funcNum; funcIter++){
         if (activeTF[funcIter]){
@@ -193,8 +193,8 @@ double subTet(std::array<valarray<double>,4> &pts,
     }
     
     const int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
-    array<int, 2> pair[pairNum];
-    array<int, 3> triple[triNum];
+    valarray<array<int, 2>> pair(pairNum);
+    valarray<array<int, 3>> triple(triNum);
     int pairIter = 0, triIter = 0;
     for (int i = 0; i < activeNum - 1; i++){
         for (int j = i + 1; j < activeNum; j++){
