@@ -13,27 +13,41 @@
 #include <fstream>
 
 //profiling the time of the entire subdivision process.
-//an array of 6 {total time, time spent on double functions, time spent on triple functions
-//, time spent on double functions' zero crossing test, time spent on three functions' zero crossing test, total subdivision time}
+//an array of 8 {total time,time spent on single function, time spent on double functions, time spent on triple functions
+//, time spent on double functions' zero crossing test, time spent on three functions' zero crossing test, total subdivision time, total splitting time}
 
 //currently, the zero crossing test is using linear programming based on Gurobi package.
+const int timer_amount = 8;
 
-std::valarray<double> profileTimer = {0,0,0,0,0,0};
+std::array<double, timer_amount> profileTimer = {0,0,0,0,0,0,0,0};
 
-std::array<std::string, 6> time_label = {"total: ",
+std::array<std::string, timer_amount> time_label = {"total time: ",
+    "single func: "
     "two func: ",
     "three func: ",
-    "gurobi two func: ",
-    "gurobi three func: ",
-    "subdivision: "};
+    "sub two func: ",
+    "sub three func: ",
+    "subdivision: ",
+    "splitting"
+};
 enum timeProfileName{
-    total,
+    total_time,
+    singleFunc,
     twoFunc,
     threeFunc,
-    gurobi_twoFunc,
-    gurobi_threeFunc,
-    subdivision
+    sub_twoFunc,
+    sub_threeFunc,
+    subdivision,
+    splitting
 };
+
+std::array<double, timer_amount> combine_timer (const std::array<double, timer_amount> &profile, const std::array<double, timer_amount> &timer){
+    std::array<double, timer_amount> ret;
+    for (int i = 0; i < timer_amount; i++){
+        ret[i] = profile[i] + timer[i];
+    }
+    return ret;
+}
 
 template<typename Fn>
 class Timer
@@ -59,25 +73,30 @@ public:
         auto end = std::chrono::time_point_cast<std::chrono::microseconds>(stopperTime).time_since_epoch().count();
         auto duration = end - start;
         double ms = duration * 0.001;
-        //std::cout << ms << "ms" << std::endl;
         switch (m_Name){
-            case total:
+            case total_time:
                 m_timeProfile[0] += ms;
                 break;
-            case twoFunc:
+            case singleFunc:
                 m_timeProfile[1] += ms;
                 break;
-            case threeFunc:
+            case twoFunc:
                 m_timeProfile[2] += ms;
                 break;
-            case gurobi_twoFunc:
+            case threeFunc:
                 m_timeProfile[3] += ms;
                 break;
-            case gurobi_threeFunc:
+            case sub_twoFunc:
                 m_timeProfile[4] += ms;
                 break;
-            case subdivision:
+            case sub_threeFunc:
                 m_timeProfile[5] += ms;
+                break;
+            case subdivision:
+                m_timeProfile[6] += ms;
+                break;
+            case splitting:
+                m_timeProfile[7] += ms;
                 break;
             default:
                 std::cout << "no matching time profile identifier" << std::endl;
@@ -89,13 +108,13 @@ public:
 private:
     timeProfileName m_Name;
     Fn m_Func;
-    std::valarray<double> m_timeProfile = {0,0,0,0,0,0};
+    std::array<double, 8> m_timeProfile = {0,0,0,0,0,0,0,0};
     std::chrono::time_point<std::chrono::high_resolution_clock> starterTime;
 };
 
 bool save_timings(const std::string& filename,
-                  const std::array<std::string, 6>& time_label,
-                  const std::valarray<double>& timings)
+                  const std::array<std::string, timer_amount>& time_label,
+                  const std::array<double, timer_amount>& timings)
 {
     using json = nlohmann::json;
     std::ofstream fout(filename.c_str(),std::ios::app);

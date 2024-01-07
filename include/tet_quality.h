@@ -7,12 +7,36 @@
 #ifndef tet_quality_h
 #define tet_quality_h
 
-#include <subdivide_multi.h>
+double dot(const valarray<double> &a, const valarray<double> &b) {
+    return (a * b).sum();
+}
 
-std::array<std::string, 4> tet_metric_labels = {"total tet number: ",
+valarray<double> normalize(const valarray<double> &a) {
+    return a / sqrt(dot(a, a));
+}
+
+double norm(const valarray<double> &a) {
+    return sqrt(dot(a, a));
+}
+
+valarray<double> perp(const valarray<double> &a){
+    return {-a[1], a[0]};
+}
+
+valarray<double> cross(const valarray<double> &a, const valarray<double> &b) {
+    valarray<double> c(3);
+    c[0] = a[1] * b[2] - a[2] * b[1];
+    c[1] = a[2] * b[0] - a[0] * b[2];
+    c[2] = a[0] * b[1] - a[1] * b[0];
+    return c;
+}
+
+std::array<std::string, 6> tet_metric_labels = {"total tet number: ",
     "active tet number: ",
     "minimum radius ratio among all tets: ",
-    "minimum radius ratio amond active tets: "
+    "minimum radius ratio amond active tets: ",
+    "two functions' gurobi: ",
+    "three functions' gurobi: "
 };
 
 std::valarray<double> mult(const std::valarray<double>& a, const std::valarray<double>& b){
@@ -67,7 +91,7 @@ double tet_radius_ratio(const std::array<valarray<double>,4> &pts)
 }
 
 bool save_metrics(const std::string& filename,
-                  const std::array<std::string, 4>& tet_metric_labels,
+                  const std::array<std::string, 6>& tet_metric_labels,
                   const std::valarray<double>& tet_metric)
 {
     // assert stats_labels.size() == stats.size()

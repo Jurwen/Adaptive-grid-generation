@@ -4,11 +4,13 @@
 #include <span>
 #include <queue>
 #include <optional>
+#include <SmallVector.h>
 
 #include <implicit_functions.h>
 #include <subdivide_multi.h>
 #include <CLI/CLI.hpp>
 #include <tet_quality.h>
+#include <timer.h>
 
 
 using namespace mtet;
@@ -29,9 +31,9 @@ int main(int argc, const char *argv[])
     {
         string mesh_file;
         string function_file;
-        double threshold = 0.005;
+        double threshold = 0.0001;
         int max_elements = -1;
-        bool batch = 0;
+        bool bfs = false;
         //bool analysis_mode = false;
     } args;
     CLI::App app{"Longest Edge Bisection Refinement"};
@@ -39,7 +41,7 @@ int main(int argc, const char *argv[])
     app.add_option("function", args.function_file, "Implicit function file")->required();
     app.add_option("-t,--threshold", args.threshold, "Threshold value");
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
-    app.add_option("-b, --batch", args.batch, "toggle the batch mode");
+    app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
     CLI11_PARSE(app, argc, argv);
     //extern const bool analysis = args.analysis_mode;
     if (args.max_elements < 0)
@@ -55,15 +57,19 @@ int main(int argc, const char *argv[])
     vector<unique_ptr<ImplicitFunction<double>>> functions;
     load_functions(args.function_file, functions);
     size_t funcNum = functions.size();
-    
+    long long int largeNumber;
+    if (args.bfs){
+        largeNumber = 99999;
+        //std::numeric_limits<long long int>::max();
+    }
     //setup gurobi env
-    GRBEnv env = GRBEnv(true);
-    env.set(GRB_IntParam_OutputFlag, 0);
-    env.set("LogFile", "");
-    env.start();
+//    GRBEnv env = GRBEnv(true);
+//    env.set(GRB_IntParam_OutputFlag, 0);
+//    env.set("LogFile", "");
+//    env.start();
     
     // initialize vertex map: vertex index -> {{f_i, gx, gy, gz} | for all f_i in the function}
-    using IndexMap = ankerl::unordered_dense::map<uint64_t, valarray<std::array<double, 4>>>;
+    using IndexMap = ankerl::unordered_dense::map<uint64_t, llvm_vecsmall::SmallVector<std::array<double, 4>, 20>>;
     IndexMap vertex_func_grad_map;
     vertex_func_grad_map.reserve(mesh.get_num_vertices());
     
@@ -74,7 +80,7 @@ int main(int argc, const char *argv[])
     
     mesh.seq_foreach_vertex([&](VertexId vid, std::span<const Scalar, 3> data)
                             {
-        valarray<array<double, 4>> func_gradList(funcNum);
+        llvm_vecsmall::SmallVector<std::array<double, 4>, 20> func_gradList(funcNum);
         for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
             auto &func = functions[funcIter];
             array<double, 4> func_grad;
@@ -87,18 +93,18 @@ int main(int argc, const char *argv[])
     { return e0.first < e1.first; };
     std::vector<std::pair<mtet::Scalar, mtet::EdgeId>> Q;
     
-    std::array<valarray<double>, 4> pts;
-    std::valarray<std::array<double, 4>> vals(funcNum);
-    std::valarray<std::array<std::valarray<double>,4>> grads(funcNum);
+    std::array<std::array<double, 3>, 4> pts;
+    llvm_vecsmall::SmallVector<std::array<double, 4>, 20> vals(funcNum);
+    llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> grads(funcNum);
     double activeTet = 0;
-    size_t sdim = 3;
-    for (int i = 0; i < 4; ++i)
-    {
-        pts[i].resize(sdim);
-        for (size_t j = 0; j < funcNum; j++){
-            grads[j][i].resize(sdim);
-        }
-    }
+//    size_t sdim = 3;
+//    for (int i = 0; i < 4; ++i)
+//    {
+//        pts[i].resize(sdim);
+//        for (size_t j = 0; j < funcNum; j++){
+//            grads[j][i].resize(sdim);
+//        }
+//    }
     
     auto push_longest_edge = [&](mtet::TetId tid)
     {
@@ -111,7 +117,7 @@ int main(int argc, const char *argv[])
             pts[i][0] = coords[0];
             pts[i][1] = coords[1];
             pts[i][2] = coords[2];
-            valarray<array<double, 4>> func_gradList(funcNum);
+            llvm_vecsmall::SmallVector<std::array<double, 4>, 20> func_gradList(funcNum);
             std::array<double, 4> func_grad;
             if (!vertex_func_grad_map.contains(value_of(vid))) {
                 for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
@@ -136,8 +142,9 @@ int main(int argc, const char *argv[])
         }
         double subResult;
         {
-            Timer timer(subdivision, [&](auto profileResult){profileTimer += profileResult;});
-            subResult = subTet(pts, vals, grads, threshold, isActive, env);
+            Timer sub_timer(subdivision, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+            subResult = subTet(pts, vals, grads, threshold, isActive);
+            sub_timer.Stop();
         }
         vertex_active_map[vertexHash(vs)] = isActive;
 
@@ -155,7 +162,12 @@ int main(int argc, const char *argv[])
                     longest_edge_length = l;
                     longest_edge = eid;
                 } });
-            Q.emplace_back(longest_edge_length, longest_edge);
+            if (args.bfs){
+                Q.emplace_back(largeNumber, longest_edge);
+                largeNumber--;
+            }else{
+                Q.emplace_back(longest_edge_length, longest_edge);
+            }
             return true;
         }
         return false;
@@ -163,7 +175,7 @@ int main(int argc, const char *argv[])
     
     
     {
-        Timer timer(total, [&](auto profileResult){profileTimer += profileResult;});
+        Timer timer(total_time, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         
         // Initialize priority queue.
         mesh.seq_foreach_tet([&](mtet::TetId tid, [[maybe_unused]] std::span<const mtet::VertexId, 4> vs)
@@ -178,8 +190,9 @@ int main(int argc, const char *argv[])
             Q.pop_back();
             if (!mesh.has_edge(eid))
                 continue;
-            
+            Timer split_timer(splitting, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             auto [vid, eid0, eid1] = mesh.split_edge(eid);
+            split_timer.Stop();
             //std::cout << "Number of elements: " << mesh.get_num_tets() << std::endl;
             if (mesh.get_num_tets() > args.max_elements) {
                 break;
@@ -195,21 +208,26 @@ int main(int argc, const char *argv[])
                     std::push_heap(Q.begin(), Q.end(), comp);
                 } });
         }
+        timer.Stop();
     }
     
     //profiled time(see details in time.h) and profiled number of calls to zero
-    //std::cout << profileTimer[0] << " " << profileTimer[1] << " " << profileTimer[2] << " " << profileTimer[3] << " " << profileTimer[4] << " " << profileTimer[5] << " " << gurobi_call_two << " " << gurobi_call_three << std::endl;
+    std::cout << profileTimer[0] << " " << profileTimer[1] << " " << profileTimer[2] << " " << profileTimer[3] << " " << profileTimer[4] << " " << profileTimer[5] << " " << profileTimer[6] << " " << profileTimer[7] << " " << sub_call_two << " " << sub_call_three << std::endl;
     double min_rratio_all = 1, min_rratio_active = 1;
+    std::array<valarray<double>,4> valPoints;
+    for (int i = 0; i < 4; i ++){
+        valPoints[i].resize(3);
+    }
     mesh.seq_foreach_tet([&](mtet::TetId tid, std::span<const VertexId, 4> data) {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
         for (int i = 0; i < 4; i++){
             auto vid = vs[i];
             auto coords = mesh.get_vertex(vid);
-            pts[i][0] = coords[0];
-            pts[i][1] = coords[1];
-            pts[i][2] = coords[2];
+            valPoints[i][0] = coords[0];
+            valPoints[i][1] = coords[1];
+            valPoints[i][2] = coords[2];
         }
-        double ratio = tet_radius_ratio(pts);
+        double ratio = tet_radius_ratio(valPoints);
         if (ratio < min_rratio_all)
             min_rratio_all = ratio;
         if(vertex_active_map.contains(vertexHash(vs))){
@@ -223,11 +241,8 @@ int main(int argc, const char *argv[])
     // save timing records
     save_timings("timings.json",time_label, profileTimer);
         // save statistics
-    save_metrics("stats.json", tet_metric_labels, {(double)mesh.get_num_tets(), activeTet, min_rratio_all, min_rratio_active});
-    
-    // Write mesh
-//    std::cout << "Number of elements: " << mesh.get_num_tets() << std::endl;
-//    std::cout << "Number of active elements: " << activeTet << std::endl;
+    save_metrics("stats.json", tet_metric_labels, {(double)mesh.get_num_tets(), activeTet, min_rratio_all, min_rratio_active, (double)sub_call_two, (double) sub_call_three});
+    //write mesh
     mtet::save_mesh("output.msh", mesh);
     
     return 0;
