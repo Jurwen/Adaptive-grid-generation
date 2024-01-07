@@ -34,6 +34,7 @@ int main(int argc, const char *argv[])
         double threshold = 0.0001;
         int max_elements = -1;
         bool bfs = false;
+        bool dfs = false;
         //bool analysis_mode = false;
     } args;
     CLI::App app{"Longest Edge Bisection Refinement"};
@@ -43,7 +44,6 @@ int main(int argc, const char *argv[])
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
     app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
     CLI11_PARSE(app, argc, argv);
-    //extern const bool analysis = args.analysis_mode;
     if (args.max_elements < 0)
     {
         args.max_elements = numeric_limits<int>::max();
@@ -57,17 +57,10 @@ int main(int argc, const char *argv[])
     vector<unique_ptr<ImplicitFunction<double>>> functions;
     load_functions(args.function_file, functions);
     size_t funcNum = functions.size();
-    long long int largeNumber;
-    if (args.bfs){
-        largeNumber = 99999;
-        //std::numeric_limits<long long int>::max();
+    int largeNumber;
+    if (args.bfs || args.dfs){
+        largeNumber = 0;
     }
-    //setup gurobi env
-//    GRBEnv env = GRBEnv(true);
-//    env.set(GRB_IntParam_OutputFlag, 0);
-//    env.set("LogFile", "");
-//    env.start();
-    
     // initialize vertex map: vertex index -> {{f_i, gx, gy, gz} | for all f_i in the function}
     using IndexMap = ankerl::unordered_dense::map<uint64_t, llvm_vecsmall::SmallVector<std::array<double, 4>, 20>>;
     IndexMap vertex_func_grad_map;
@@ -97,14 +90,6 @@ int main(int argc, const char *argv[])
     llvm_vecsmall::SmallVector<std::array<double, 4>, 20> vals(funcNum);
     llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> grads(funcNum);
     double activeTet = 0;
-//    size_t sdim = 3;
-//    for (int i = 0; i < 4; ++i)
-//    {
-//        pts[i].resize(sdim);
-//        for (size_t j = 0; j < funcNum; j++){
-//            grads[j][i].resize(sdim);
-//        }
-//    }
     
     auto push_longest_edge = [&](mtet::TetId tid)
     {
@@ -165,7 +150,11 @@ int main(int argc, const char *argv[])
             if (args.bfs){
                 Q.emplace_back(largeNumber, longest_edge);
                 largeNumber--;
-            }else{
+            }else if(args.dfs){
+                Q.emplace_back(largeNumber, longest_edge);
+                largeNumber++;
+            }
+            else{
                 Q.emplace_back(longest_edge_length, longest_edge);
             }
             return true;

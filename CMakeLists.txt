@@ -11,18 +11,6 @@ include(convex_hull_membership)
 include(smallvector)
 include(unordered_dense)
 
-# Visual Studio compiler with static runtime libraries
-if(MSVC AND MT)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
-endif()
-
-find_package(GUROBI REQUIRED)
-
-include_directories(${GUROBI_INCLUDE_DIRS})
-
 add_executable(isosurfacing "app/isosurfacing.cpp")
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
@@ -39,10 +27,4 @@ target_link_libraries(isosurfacing PRIVATE
     convex_hull_membership
     unordered_dense::unordered_dense
     smallvector::smallvector
-    ${GUROBI_LIBRARY})
-
-if(CXX)
-  set(CMAKE_CXX_STANDARD 11)
-  target_link_libraries(isosurfacing optimized ${GUROBI_CXX_LIBRARY}
-                        debug ${GUROBI_CXX_DEBUG_LIBRARY})
-endif()
+    )
