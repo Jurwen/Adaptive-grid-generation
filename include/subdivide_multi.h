@@ -233,6 +233,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
     }
     get_func_timer.Stop();
     // 2-function checks
+    int activeDouble_count = 0;
     {
         Timer timer(twoFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         bool zeroX;
@@ -245,6 +246,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             zeroX = convex_hull_membership::contains<2, double>(nPoints, query);
             sub_timer.Stop();
             if (zeroX){
+                activeDouble_count++;
                 zeroXResult[pair[pairIter][0]][pair[pairIter][1]] = true;
                 zeroXResult[pair[pairIter][1]][pair[pairIter][0]] = true;
 
@@ -276,7 +278,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         }
         timer.Stop();
     }
-    if(activeNum < 3)
+    if(activeDouble_count < 3)
         return false;
     {
         Timer timer(threeFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
