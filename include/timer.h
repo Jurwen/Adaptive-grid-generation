@@ -17,27 +17,31 @@
 //, time spent on double functions' zero crossing test, time spent on three functions' zero crossing test, total subdivision time, total splitting time}
 
 //currently, the zero crossing test is using linear programming based on Gurobi package.
-const int timer_amount = 8;
+const int timer_amount = 10;
 
-std::array<double, timer_amount> profileTimer = {0,0,0,0,0,0,0,0};
+std::array<double, timer_amount> profileTimer = {0,0,0,0,0,0,0,0,0,0};
 
 std::array<std::string, timer_amount> time_label = {"total time: ",
     "single func: ",
+    "get active multiples: ",
     "two func: ",
     "three func: ",
     "sub two func: ",
     "sub three func: ",
     "subdivision: ",
-    "splitting"
+    "evaluations: ",
+    "splitting: "
 };
 enum timeProfileName{
     total_time,
+    getActiveMuti,
     singleFunc,
     twoFunc,
     threeFunc,
     sub_twoFunc,
     sub_threeFunc,
     subdivision,
+    evaluation,
     splitting
 };
 
@@ -61,10 +65,7 @@ public:
         starterTime = std::chrono::high_resolution_clock::now();
     }
     
-    ~Timer()
-    {
-        Stop();
-    }
+    ~Timer(){}
     
     void Stop()
     {
@@ -77,26 +78,32 @@ public:
             case total_time:
                 m_timeProfile[0] += ms;
                 break;
-            case singleFunc:
+            case getActiveMuti:
                 m_timeProfile[1] += ms;
                 break;
-            case twoFunc:
+            case singleFunc:
                 m_timeProfile[2] += ms;
                 break;
-            case threeFunc:
+            case twoFunc:
                 m_timeProfile[3] += ms;
                 break;
-            case sub_twoFunc:
+            case threeFunc:
                 m_timeProfile[4] += ms;
                 break;
-            case sub_threeFunc:
+            case sub_twoFunc:
                 m_timeProfile[5] += ms;
                 break;
-            case subdivision:
+            case sub_threeFunc:
                 m_timeProfile[6] += ms;
                 break;
-            case splitting:
+            case subdivision:
                 m_timeProfile[7] += ms;
+                break;
+            case evaluation:
+                m_timeProfile[8] += ms;
+                break;
+            case splitting:
+                m_timeProfile[9] += ms;
                 break;
             default:
                 std::cout << "no matching time profile identifier" << std::endl;
@@ -108,7 +115,7 @@ public:
 private:
     timeProfileName m_Name;
     Fn m_Func;
-    std::array<double, 8> m_timeProfile = {0,0,0,0,0,0,0,0};
+    std::array<double, timer_amount> m_timeProfile = {0,0,0,0,0,0,0,0,0,0};
     std::chrono::time_point<std::chrono::high_resolution_clock> starterTime;
 };
 

@@ -197,9 +197,8 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
         diffList[funcIter] = difflist_elements;
         errorList[funcIter] = diff;
 
-        activeTF[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? false : true;
-
         Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+        activeTF[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? false : true;
         if (activeTF[funcIter]){
             if (!active){
                 active = true;
@@ -214,6 +213,7 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
         single_timer.Stop();
     }
     
+    Timer get_func_timer(getActiveMuti, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
     if(activeNum < 2)
         return -1;
     llvm_vecsmall::SmallVector<int, 20> activeFunc(activeNum);
@@ -224,7 +224,6 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
             activeFuncIter++;
         }
     }
-
     const int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
     llvm_vecsmall::SmallVector<array<int, 2>,40> pair(pairNum);
     llvm_vecsmall::SmallVector<array<int, 3>, 100> triple(triNum);
@@ -241,7 +240,7 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
             }
         }
     }
-
+    get_func_timer.Stop();
     // 2-function checks
     {
         Timer timer(twoFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});

@@ -94,37 +94,40 @@ int main(int argc, const char *argv[])
     auto push_longest_edge = [&](mtet::TetId tid)
     {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
-        bool isActive = 0;
-        for (int i = 0; i < 4; ++i)
         {
-            auto vid = vs[i];
-            auto coords = mesh.get_vertex(vid);
-            pts[i][0] = coords[0];
-            pts[i][1] = coords[1];
-            pts[i][2] = coords[2];
-            llvm_vecsmall::SmallVector<std::array<double, 4>, 20> func_gradList(funcNum);
-            std::array<double, 4> func_grad;
-            if (!vertex_func_grad_map.contains(value_of(vid))) {
-                for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
-                    auto &func = functions[funcIter];
-                    array<double, 4> func_grad;
-                    func_grad[0] = func->evaluate_gradient(coords[0], coords[1], coords[2], func_grad[1], func_grad[2],
-                                                           func_grad[3]);
-                    func_gradList[funcIter] = func_grad;
+            Timer eval_timer(evaluation, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+            for (int i = 0; i < 4; ++i)
+            {
+                auto vid = vs[i];
+                auto coords = mesh.get_vertex(vid);
+                pts[i][0] = coords[0];
+                pts[i][1] = coords[1];
+                pts[i][2] = coords[2];
+                llvm_vecsmall::SmallVector<std::array<double, 4>, 20> func_gradList(funcNum);
+                std::array<double, 4> func_grad;
+                if (!vertex_func_grad_map.contains(value_of(vid))) {
+                    for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
+                        auto &func = functions[funcIter];
+                        array<double, 4> func_grad;
+                        func_grad[0] = func->evaluate_gradient(coords[0], coords[1], coords[2], func_grad[1], func_grad[2],
+                                                               func_grad[3]);
+                        func_gradList[funcIter] = func_grad;
+                    }
+                    vertex_func_grad_map[value_of(vid)] = func_gradList;
                 }
-                vertex_func_grad_map[value_of(vid)] = func_gradList;
+                else {
+                    func_gradList = vertex_func_grad_map[value_of(vid)];
+                }
+                for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
+                    vals[funcIter][i] = func_gradList[funcIter][0];
+                    grads[funcIter][i][0] = func_gradList[funcIter][1];
+                    grads[funcIter][i][1] = func_gradList[funcIter][2];
+                    grads[funcIter][i][2] = func_gradList[funcIter][3];
+                }
             }
-            else {
-                func_gradList = vertex_func_grad_map[value_of(vid)];
-            }
-            for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
-                vals[funcIter][i] = func_gradList[funcIter][0];
-                grads[funcIter][i][0] = func_gradList[funcIter][1];
-                grads[funcIter][i][1] = func_gradList[funcIter][2];
-                grads[funcIter][i][2] = func_gradList[funcIter][3];
-            }
-            
+            eval_timer.Stop();
         }
+        bool isActive = 0;
         double subResult;
         {
             Timer sub_timer(subdivision, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
@@ -132,7 +135,6 @@ int main(int argc, const char *argv[])
             sub_timer.Stop();
         }
         vertex_active_map[vertexHash(vs)] = isActive;
-
         if (subResult != -1)
         {
             mtet::EdgeId longest_edge;
@@ -201,7 +203,12 @@ int main(int argc, const char *argv[])
     }
     
     //profiled time(see details in time.h) and profiled number of calls to zero
-    std::cout << profileTimer[0] << " " << profileTimer[1] << " " << profileTimer[2] << " " << profileTimer[3] << " " << profileTimer[4] << " " << profileTimer[5] << " " << profileTimer[6] << " " << profileTimer[7] << " " << sub_call_two << " " << sub_call_three << std::endl;
+    for (int i = 0; i < profileTimer.size(); i++){
+        timeProfileName time_type = static_cast<timeProfileName>(i);
+        std::cout << time_type << ": " << profileTimer[i] << std::endl;
+    }
+    std::cout << "sub two func calls: " << sub_call_two << std::endl;
+    std::cout << "sub three func calls: " << sub_call_three << std::endl;
     double min_rratio_all = 1, min_rratio_active = 1;
     std::array<valarray<double>,4> valPoints;
     for (int i = 0; i < 4; i ++){
@@ -229,7 +236,7 @@ int main(int argc, const char *argv[])
     });
     // save timing records
     save_timings("timings.json",time_label, profileTimer);
-        // save statistics
+    // save statistics
     save_metrics("stats.json", tet_metric_labels, {(double)mesh.get_num_tets(), activeTet, min_rratio_all, min_rratio_active, (double)sub_call_two, (double) sub_call_three});
     //write mesh
     mtet::save_mesh("output.msh", mesh);
