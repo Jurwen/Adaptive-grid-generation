@@ -158,10 +158,6 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         std::array<double, 3> g0 = grads[funcIter][0], g1 = grads[funcIter][1], g2 = grads[funcIter][2], g3 = grads[funcIter][3];
         //        std:: cout << v1 << std::endl;
         //        std:: cout << g0[0] << ", " << g0[1] << ", " << g0[2] << std::endl;
-        double d1 = v1-v0, d2 = v2-v0, d3 = v3-v0;
-        llvm_vecsmall::SmallVector<double, 20> unNormF = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{d1, d2, d3}}), crossMatrix)[0];
-        //std:: cout << unNormF[0] << ", " << unNormF[1] << ", " << unNormF[2] << std::endl;
-        gradList[funcIter] = {unNormF[0],unNormF[1],unNormF[2]};
         // Bezier control points
         std::array<double, 3> v0s = {v0 + dot(g0, vec1) / 3, v0 + dot(g0, vec2) / 3, v0 + dot(g0, vec3) / 3};
         std::array<double, 3> v1s = {v1 + dot(g1, vec4) / 3, v1 + dot(g1, vec5) / 3, v1 - dot(g1, vec1) / 3};
@@ -179,26 +175,33 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         //storing bezier and linear info for later linearity comparison
         valList[funcIter] = {v0, v1, v2, v3, v0s[0], v0s[1], v0s[2], v1s[0], v1s[1], v1s[2], v2s[0], v2s[1], v2s[2],
             v3s[0], v3s[1], v3s[2], vMid0, vMid1, vMid2, vMid3};
-        for (int i = 0; i < 16; ++i) {
-            diffList[funcIter][i] = valList[funcIter][i + 4] - (v0 * coeff[i][0] + v1 * coeff[i][1] + v2 * coeff[i][2] + v3 * coeff[i][3]) / 3.0;
-        }
-        errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
 
         Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         activeTF[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? false : true;
+        single_timer.Stop();
         if (activeTF[funcIter]){
             if (!active){
                 active = true;
             }
             activeNum++;
+            double d1 = v1-v0, d2 = v2-v0, d3 = v3-v0;
+            llvm_vecsmall::SmallVector<double, 20> unNormF = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{d1, d2, d3}}), crossMatrix)[0];
+            //std:: cout << unNormF[0] << ", " << unNormF[1] << ", " << unNormF[2] << std::endl;
+            gradList[funcIter] = {unNormF[0],unNormF[1],unNormF[2]};
+            for (int i = 0; i < 16; ++i) {
+                diffList[funcIter][i] = valList[funcIter][i + 4] -
+                (v0 * coeff[i][0] + v1 * coeff[i][1] + v2 * coeff[i][2] + v3 * coeff[i][3]) / 3.0;
+            }
+            errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
+            Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             double lhs = errorList[funcIter] * errorList[funcIter] * sqD;
             double rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
             if (lhs > rhs) {
                 single_timer.Stop();
                 return score;
             }
+            single_timer.Stop();
         }
-        single_timer.Stop();
     }
     
     Timer get_func_timer(getActiveMuti, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
