@@ -167,14 +167,14 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         std::array<double, 3> v1s = {v1 + dot(g1, vec4) / 3, v1 + dot(g1, vec5) / 3, v1 - dot(g1, vec1) / 3};
         std::array<double, 3> v2s = {v2 + dot(g2, vec6) / 3, v2 - dot(g2, vec2) / 3, v2 - dot(g2, vec4) / 3};
         std::array<double, 3> v3s = {v3 - dot(g3, vec3) / 3, v3 - dot(g3, vec5) / 3, v3 - dot(g3, vec6) / 3};
-        double e0 = (v1s[0] + v1s[1] + v2s[0] + v2s[2] + v3s[1] + v3s[2]) / 6;
-        double vMid0 = (9 * e0 - v1 - v2 - v3)/ 6;
-        double e1 = (v0s[1] + v0s[2] + v2s[0] + v2s[1] + v3s[0] + v3s[2]) / 6;
-        double vMid1 =(9 * e1 - v0 - v2 - v3)/ 6;
-        double e2 = (v0s[0] + v0s[2] + v1s[1] + v1s[2] + v3s[0] + v3s[1]) / 6;
-        double vMid2 =(9 * e2 - v0 - v1 - v3)/ 6;
-        double e3 = (v0s[0] + v0s[1] + v1s[0] + v1s[2] + v2s[1] + v2s[2]) / 6;
-        double vMid3 =(9 * e3 - v0 - v1 - v2)/ 6;
+        //double e0 = (v1s[0] + v1s[1] + v2s[0] + v2s[2] + v3s[1] + v3s[2]) / 6;
+        double vMid0 = (9 * (v1s[0] + v1s[1] + v2s[0] + v2s[2] + v3s[1] + v3s[2]) / 6 - v1 - v2 - v3)/ 6;
+        //double e1 = (v0s[1] + v0s[2] + v2s[0] + v2s[1] + v3s[0] + v3s[2]) / 6;
+        double vMid1 =(9 * (v0s[1] + v0s[2] + v2s[0] + v2s[1] + v3s[0] + v3s[2]) / 6 - v0 - v2 - v3)/ 6;
+        //double e2 = (v0s[0] + v0s[2] + v1s[1] + v1s[2] + v3s[0] + v3s[1]) / 6;
+        double vMid2 =(9 * (v0s[0] + v0s[2] + v1s[1] + v1s[2] + v3s[0] + v3s[1]) / 6 - v0 - v1 - v3)/ 6;
+        //double e3 = (v0s[0] + v0s[1] + v1s[0] + v1s[2] + v2s[1] + v2s[2]) / 6;
+        double vMid3 =(9 * (v0s[0] + v0s[1] + v1s[0] + v1s[2] + v2s[1] + v2s[2]) / 6 - v0 - v1 - v2)/ 6;
 
         //storing bezier and linear info for later linearity comparison
         valList[funcIter] = {v0, v1, v2, v3, v0s[0], v0s[1], v0s[2], v1s[0], v1s[1], v1s[2], v2s[0], v2s[1], v2s[2],
@@ -194,6 +194,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             double lhs = errorList[funcIter] * errorList[funcIter] * sqD;
             double rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
             if (lhs > rhs) {
+                single_timer.Stop();
                 return score;
             }
         }
@@ -265,6 +266,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                         maxGammaSq = currError;
                 }
                 if (maxGammaSq > threshold*threshold * E*E){
+                    timer.Stop();
                     return score;
                 }
             }
@@ -298,8 +300,10 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                     if (maxGammaSq < currError)
                         maxGammaSq = currError;
                 }
-                if (maxGammaSq > threshold*threshold * E*E)
+                if (maxGammaSq > threshold*threshold * E*E){
+                    timer.Stop();
                     return score;
+                }
             }
         }
         timer.Stop();
