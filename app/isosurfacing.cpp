@@ -135,6 +135,7 @@ int main(int argc, const char *argv[])
             sub_timer.Stop();
         }
         vertex_active_map[vertexHash(vs)] = isActive;
+        Timer eval_timer(evaluation, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         if (subResult)
         {
             mtet::EdgeId longest_edge;
@@ -159,8 +160,10 @@ int main(int argc, const char *argv[])
             else{
                 Q.emplace_back(longest_edge_length, longest_edge);
             }
+            eval_timer.Stop();
             return true;
         }
+        eval_timer.Stop();
         return false;
     };
     
