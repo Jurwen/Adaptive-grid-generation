@@ -128,14 +128,14 @@ int main(int argc, const char *argv[])
             eval_timer.Stop();
         }
         bool isActive = 0;
-        double subResult;
+        bool subResult;
         {
             Timer sub_timer(subdivision, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             subResult = subTet(pts, vals, grads, threshold, isActive);
             sub_timer.Stop();
         }
         vertex_active_map[vertexHash(vs)] = isActive;
-        if (subResult != -1)
+        if (subResult)
         {
             mtet::EdgeId longest_edge;
             mtet::Scalar longest_edge_length = 0;
@@ -203,12 +203,13 @@ int main(int argc, const char *argv[])
     }
     
     //profiled time(see details in time.h) and profiled number of calls to zero
-    for (int i = 0; i < profileTimer.size(); i++){
-        timeProfileName time_type = static_cast<timeProfileName>(i);
-        std::cout << time_type << ": " << profileTimer[i] << std::endl;
-    }
-    std::cout << "sub two func calls: " << sub_call_two << std::endl;
-    std::cout << "sub three func calls: " << sub_call_three << std::endl;
+//    for (int i = 0; i < profileTimer.size(); i++){
+//        timeProfileName time_type = static_cast<timeProfileName>(i);
+//        std::cout << time_type << ": " << profileTimer[i] << std::endl;
+//    }
+    std::cout << profileTimer[0] << " "<< profileTimer[1] << " "<< profileTimer[2] << " "<< profileTimer[3] << " "<< profileTimer[4] << " "<< profileTimer[5] << " "<< profileTimer[6] << " "<< profileTimer[7] << " "<< profileTimer[8] << " "<< profileTimer[9] << " "<< sub_call_two << " "<< sub_call_three << std::endl;
+    //std::cout << "sub two func calls: " << sub_call_two << std::endl;
+    //std::cout << "sub three func calls: " << sub_call_three << std::endl;
     double min_rratio_all = 1, min_rratio_active = 1;
     std::array<valarray<double>,4> valPoints;
     for (int i = 0; i < 4; i ++){

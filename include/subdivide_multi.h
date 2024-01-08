@@ -130,21 +130,19 @@ llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> matrixMul
 }
 
 
-double subTet(std::array<std::array<double, 3>,4> &pts,
+bool subTet(std::array<std::array<double, 3>,4> &pts,
               const llvm_vecsmall::SmallVector<std::array<double,4>, 20> &vals,
               const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> &grads, const double threshold, bool& active) {
     std::array<double, 3> p0 = pts[0], p1 = pts[1], p2 = pts[2], p3 = pts[3];
-    std::array<double, 3> vec1, vec2, vec3;
-    for (int i = 0; i < 3; i++){
-        vec1[i] = p1[i] - p0[i];
-        vec2[i] = p2[i] - p0[i];
-        vec3[i] = p3[i] - p0[i];
-    }
+    std::array<double, 3> vec1 = getVec(p1, p0), vec2 = getVec(p2, p0), vec3 = getVec(p3, p0),
+    vec4 = getVec(p2, p1), vec5 = getVec(p3, p1), vec6 = getVec(p3, p2);
     double D = det(vec1, vec2, vec3);
     double sqD = D*D;
-    double tetEdgeLen[] = {norm(getVec(p1, p0)),norm(getVec(p2,p0)), norm(getVec(p3,p0)), norm(getVec(p2,p1)), norm(getVec(p3,p1)), norm(getVec(p3,p2))};
-    double score = *std::max_element(tetEdgeLen, tetEdgeLen + 6); // find the largest edge length using 6 edges.
+    bool score = true;
+//    double tetEdgeLen[] = {norm(getVec(p1, p0)),norm(getVec(p2,p0)), norm(getVec(p3,p0)), norm(getVec(p2,p1)), norm(getVec(p3,p1)), norm(getVec(p3,p2))};
+//    double score = *std::max_element(tetEdgeLen, tetEdgeLen + 6); // find the largest edge length using 6 edges.
     const size_t funcNum = vals.size();
+    llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> crossMatrix = {cross(vec2, vec3), cross(vec3, vec1), cross(vec1, vec2)};
     llvm_vecsmall::SmallVector<std::array<double, 3>, 20> gradList(funcNum);
     llvm_vecsmall::SmallVector<std::array<double, 20>, 20> valList(funcNum);
     llvm_vecsmall::SmallVector<std::array<double, 16>, 20> diffList(funcNum);
@@ -161,41 +159,30 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
         //        std:: cout << v1 << std::endl;
         //        std:: cout << g0[0] << ", " << g0[1] << ", " << g0[2] << std::endl;
         double d1 = v1-v0, d2 = v2-v0, d3 = v3-v0;
-        llvm_vecsmall::SmallVector<double, 20> unNormF = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{d1, d2, d3}}), llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({cross(vec2, vec3), cross(vec3, vec1), cross(vec1, vec2)}))[0];
+        llvm_vecsmall::SmallVector<double, 20> unNormF = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{d1, d2, d3}}), crossMatrix)[0];
         //std:: cout << unNormF[0] << ", " << unNormF[1] << ", " << unNormF[2] << std::endl;
         gradList[funcIter] = {unNormF[0],unNormF[1],unNormF[2]};
         // Bezier control points
-        std::array<double, 3> v0s = {v0 + dot(g0, getVec(p1 , p0)) / 3, v0 + dot(g0, getVec(p2 , p0)) / 3, v0 + dot(g0, getVec(p3 , p0)) / 3};
-        std::array<double, 3> v1s = {v1 + dot(g1, getVec(p2 , p1)) / 3, v1 + dot(g1, getVec(p3 , p1)) / 3, v1 + dot(g1, getVec(p0 , p1)) / 3};
-        std::array<double, 3> v2s = {v2 + dot(g2, getVec(p3 , p2)) / 3, v2 + dot(g2, getVec(p0 , p2)) / 3, v2 + dot(g2, getVec(p1 , p2)) / 3};
-        std::array<double, 3> v3s = {v3 + dot(g3, getVec(p0 , p3)) / 3, v3 + dot(g3, getVec(p1 , p3)) / 3, v3 + dot(g3, getVec(p2 , p3)) / 3};
+        std::array<double, 3> v0s = {v0 + dot(g0, vec1) / 3, v0 + dot(g0, vec2) / 3, v0 + dot(g0, vec3) / 3};
+        std::array<double, 3> v1s = {v1 + dot(g1, vec4) / 3, v1 + dot(g1, vec5) / 3, v1 - dot(g1, vec1) / 3};
+        std::array<double, 3> v2s = {v2 + dot(g2, vec6) / 3, v2 - dot(g2, vec2) / 3, v2 - dot(g2, vec4) / 3};
+        std::array<double, 3> v3s = {v3 - dot(g3, vec3) / 3, v3 - dot(g3, vec5) / 3, v3 - dot(g3, vec6) / 3};
         double e0 = (v1s[0] + v1s[1] + v2s[0] + v2s[2] + v3s[1] + v3s[2]) / 6;
-        double vMid0 = e0 + (e0 - (v1 + v2 + v3) / 3) / 2;
+        double vMid0 = (9 * e0 - v1 - v2 - v3)/ 6;
         double e1 = (v0s[1] + v0s[2] + v2s[0] + v2s[1] + v3s[0] + v3s[2]) / 6;
-        double vMid1 = e1 + (e1 - (v0 + v2 + v3) / 3) / 2;
+        double vMid1 =(9 * e1 - v0 - v2 - v3)/ 6;
         double e2 = (v0s[0] + v0s[2] + v1s[1] + v1s[2] + v3s[0] + v3s[1]) / 6;
-        double vMid2 = e2 + (e2 - (v0 + v1 + v3) / 3) / 2;
+        double vMid2 =(9 * e2 - v0 - v1 - v3)/ 6;
         double e3 = (v0s[0] + v0s[1] + v1s[0] + v1s[2] + v2s[1] + v2s[2]) / 6;
-        double vMid3 = e3 + (e3 - (v0 + v1 + v2) / 3) / 2;
+        double vMid3 =(9 * e3 - v0 - v1 - v2)/ 6;
 
         //storing bezier and linear info for later linearity comparison
         valList[funcIter] = {v0, v1, v2, v3, v0s[0], v0s[1], v0s[2], v1s[0], v1s[1], v1s[2], v2s[0], v2s[1], v2s[2],
             v3s[0], v3s[1], v3s[2], vMid0, vMid1, vMid2, vMid3};
-        std::array<double, 16> bezier_vals = {v0s[0], v0s[1], v0s[2], v1s[0], v1s[1], v1s[2],
-            v2s[0], v2s[1], v2s[2], v3s[0], v3s[1], v3s[2],
-            vMid0, vMid1, vMid2, vMid3};
-        std::array<double, 16> linear_vals;
-        for (size_t i = 0; i < coeff.size(); ++i) {
-            linear_vals[i] = (v0 * coeff[i][0] + v1 * coeff[i][1] + v2 * coeff[i][2] + v3 * coeff[i][3]) / 3.0;
-        }
-        double diff = 0;
-        std::array<double, 16> difflist_elements;
         for (int i = 0; i < 16; ++i) {
-            difflist_elements[i] = bezier_vals[i] - linear_vals[i];
-            diff = std::max(diff, std::abs(difflist_elements[i]));
+            diffList[funcIter][i] = valList[funcIter][i + 4] - (v0 * coeff[i][0] + v1 * coeff[i][1] + v2 * coeff[i][2] + v3 * coeff[i][3]) / 3.0;
         }
-        diffList[funcIter] = difflist_elements;
-        errorList[funcIter] = diff;
+        errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
 
         Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         activeTF[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? false : true;
@@ -215,7 +202,7 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
     
     Timer get_func_timer(getActiveMuti, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
     if(activeNum < 2)
-        return -1;
+        return false;
     llvm_vecsmall::SmallVector<int, 20> activeFunc(activeNum);
     int activeFuncIter = 0;
     for (int funcIter = 0; funcIter < funcNum; funcIter++){
@@ -285,7 +272,7 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
         timer.Stop();
     }
     if(activeNum < 3)
-        return -1;
+        return false;
     {
         Timer timer(threeFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         bool zeroX;
@@ -317,7 +304,7 @@ double subTet(std::array<std::array<double, 3>,4> &pts,
         }
         timer.Stop();
     }
-    return -1;
+    return false;
 }
 
 #endif /* subdivide_multi_h */
