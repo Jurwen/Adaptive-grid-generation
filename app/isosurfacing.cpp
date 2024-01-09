@@ -33,7 +33,7 @@ int main(int argc, const char *argv[])
         string function_file;
         double threshold = 0.0001;
         int max_elements = -1;
-        string method = "CSG";
+        string method = "IA";
         string csg_file;
         bool bfs = false;
         bool dfs = false;
@@ -43,13 +43,20 @@ int main(int argc, const char *argv[])
     app.add_option("mesh", args.mesh_file, "Initial mesh file")->required();
     app.add_option("function", args.function_file, "Implicit function file")->required();
     app.add_option("-t,--threshold", args.threshold, "Threshold value");
-    app.add_option("-i,--implicit", args.method, "Types of implicit manifold");
-//    if (args.method == "CSG"){
-//        app.add_option("csg file", args.csg_file, "CSG Tree file")->required();
-//    }
+    app.add_option("-o,--option", args.method, "Options of implicit manifold");
+    app.add_option("--tree", args.csg_file, "CSG Tree file");
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
     app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
     CLI11_PARSE(app, argc, argv);
+
+    // Read mesh
+    mtet::MTetMesh mesh = mtet::load_mesh(args.mesh_file);
+    
+    // Read implicit function
+    vector<unique_ptr<ImplicitFunction<double>>> functions;
+    load_functions(args.function_file, functions);
+    size_t funcNum = functions.size();
+    // Read options
     if (args.max_elements < 0)
     {
         args.max_elements = numeric_limits<int>::max();
@@ -60,17 +67,12 @@ int main(int argc, const char *argv[])
     }
     if (args.method == "CSG"){
         GLOBAL_METHOD = CSG;
+        load_csgTree(args.csg_file, GLOBAL_CSGTREE);
     }
     if (args.method == "MI"){
         GLOBAL_METHOD = MI;
     }
-    // Read mesh
-    mtet::MTetMesh mesh = mtet::load_mesh(args.mesh_file);
     
-    // Read implicit function
-    vector<unique_ptr<ImplicitFunction<double>>> functions;
-    load_functions(args.function_file, functions);
-    size_t funcNum = functions.size();
     int largeNumber;
     if (args.bfs || args.dfs){
         largeNumber = 0;
@@ -104,7 +106,6 @@ int main(int argc, const char *argv[])
     llvm_vecsmall::SmallVector<std::array<double, 4>, 20> vals(funcNum);
     llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> grads(funcNum);
     double activeTet = 0;
-    
     auto push_longest_edge = [&](mtet::TetId tid)
     {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
@@ -218,7 +219,6 @@ int main(int argc, const char *argv[])
         }
         timer.Stop();
     }
-    
     //profiled time(see details in time.h) and profiled number of calls to zero
 //    for (int i = 0; i < profileTimer.size(); i++){
 //        timeProfileName time_type = static_cast<timeProfileName>(i);
@@ -227,28 +227,32 @@ int main(int argc, const char *argv[])
     std::cout << profileTimer[0] << " "<< profileTimer[1] << " "<< profileTimer[2] << " "<< profileTimer[3] << " "<< profileTimer[4] << " "<< profileTimer[5] << " "<< profileTimer[6] << " "<< profileTimer[7] << " "<< profileTimer[8] << " "<< profileTimer[9] << " "<< sub_call_two << " "<< sub_call_three << std::endl;
     //std::cout << "sub two func calls: " << sub_call_two << std::endl;
     //std::cout << "sub three func calls: " << sub_call_three << std::endl;
-    double min_rratio_all = 1, min_rratio_active = 1;
-    std::array<valarray<double>,4> valPoints;
-    for (int i = 0; i < 4; i ++){
-        valPoints[i].resize(3);
-    }
+    double min_rratio_all = 1;
+    double min_rratio_active = 1;
     mesh.seq_foreach_tet([&](mtet::TetId tid, std::span<const VertexId, 4> data) {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
+        std::array<valarray<double>,4> vallPoints;
         for (int i = 0; i < 4; i++){
-            auto vid = vs[i];
-            auto coords = mesh.get_vertex(vid);
-            valPoints[i][0] = coords[0];
-            valPoints[i][1] = coords[1];
-            valPoints[i][2] = coords[2];
+            vallPoints[i] = {0.0,0.0,0.0};
         }
-        double ratio = tet_radius_ratio(valPoints);
-        if (ratio < min_rratio_all)
+        for (int i = 0; i < 4; i++){
+            VertexId vid = vs[i];
+            std::span<Scalar, 3> coords = mesh.get_vertex(vid);
+            vallPoints[i][0] = coords[0];
+            vallPoints[i][1] = coords[1];
+            vallPoints[i][2] = coords[2];
+        }
+        double ratio = tet_radius_ratio(vallPoints);
+        if (ratio < min_rratio_all){
             min_rratio_all = ratio;
+            
+        }
         if(vertex_active_map.contains(vertexHash(vs))){
             if (vertex_active_map[vertexHash(vs)]){
                 activeTet++;
-                if (ratio < min_rratio_active)
+                if (ratio < min_rratio_active){
                     min_rratio_active = ratio;
+                }
             }
         }
     });

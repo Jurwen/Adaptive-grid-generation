@@ -42,7 +42,39 @@ struct csg_unit{
     std::array<int, 2> elements;
 };
 
-const llvm_vecsmall::SmallVector<csg_unit, 20> GLOBAL_CSGTREE ={{0, {2, 8}}, {1, {3, -9}}, {0,{-1,4}}, {0, {-2, 5}}, {0, {-3,6}}, {0, {-4, 7}}, {0, {-5, -6}},{2,{9, 0}}, {1, {-7, -8}}};
+bool load_csgTree(const std::string filename, llvm_vecsmall::SmallVector<csg_unit, 20>& tree){
+    using json = nlohmann::json;
+    std::ifstream fin(filename.c_str());
+    //llvm_vecsmall::SmallVector<csg_unit, 20> tree = {};
+    if (!fin)
+    {
+        std::cout << "function file not exist!" << std::endl;
+        return false;
+    }
+    json tree_data;
+    fin >> tree_data;
+    fin.close();
+    //
+    size_t n_units = tree_data.size();
+    tree.resize(n_units);
+    for (size_t j = 0 ; j < n_units; j++){
+        std::string type = tree_data[j]["type"].get<std::string>();
+        std::array<int, 2> elements;
+        for (int i = 0; i < 2; i ++){
+            elements[i] = tree_data[j]["elements"][i].get<int>();
+        }
+        if (type == "Intersection"){
+            tree[j] = {0, elements};
+        }else if (type == "Union"){
+            tree[j] = {1, elements};
+        }else if (type == "Negation"){
+            tree[j] = {2, elements};
+        }
+    }
+    return true;
+}
+
+llvm_vecsmall::SmallVector<csg_unit, 20> GLOBAL_CSGTREE ={{0, {2, 8}}, {1, {3, -9}}, {0,{-1,4}}, {0, {-2, 5}}, {0, {-3,6}}, {0, {-4, 7}}, {0, {-5, -6}},{2,{9, 0}}, {1, {-7, -8}}};
 
 std::pair<array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> iterTree(const llvm_vecsmall::SmallVector<csg_unit, 20>csgTree,const int curNode,const llvm_vecsmall::SmallVector<array<double , 2>, 20> funcInt){
     csg_unit curUnit = csgTree[curNode - 1];
@@ -433,5 +465,6 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
     }
     return false;
 }
+
 
 #endif /* subdivide_multi_h */
