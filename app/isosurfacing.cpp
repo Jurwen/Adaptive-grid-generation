@@ -33,6 +33,8 @@ int main(int argc, const char *argv[])
         string function_file;
         double threshold = 0.0001;
         int max_elements = -1;
+        string method = "CSG";
+        string csg_file;
         bool bfs = false;
         bool dfs = false;
         //bool analysis_mode = false;
@@ -41,6 +43,10 @@ int main(int argc, const char *argv[])
     app.add_option("mesh", args.mesh_file, "Initial mesh file")->required();
     app.add_option("function", args.function_file, "Implicit function file")->required();
     app.add_option("-t,--threshold", args.threshold, "Threshold value");
+    app.add_option("-i,--implicit", args.method, "Types of implicit manifold");
+//    if (args.method == "CSG"){
+//        app.add_option("csg file", args.csg_file, "CSG Tree file")->required();
+//    }
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
     app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
     CLI11_PARSE(app, argc, argv);
@@ -49,7 +55,15 @@ int main(int argc, const char *argv[])
         args.max_elements = numeric_limits<int>::max();
     }
     double threshold = args.threshold;
-    
+    if (args.method == "IA"){
+        GLOBAL_METHOD = IA;
+    }
+    if (args.method == "CSG"){
+        GLOBAL_METHOD = CSG;
+    }
+    if (args.method == "MI"){
+        GLOBAL_METHOD = MI;
+    }
     // Read mesh
     mtet::MTetMesh mesh = mtet::load_mesh(args.mesh_file);
     

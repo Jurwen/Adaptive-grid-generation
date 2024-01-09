@@ -23,6 +23,87 @@ using namespace std;
 int sub_call_two = 0;
 int sub_call_three = 0;
 
+enum geo_obj {
+    IA,
+    CSG,
+    MI
+};
+
+int GLOBAL_METHOD = IA;
+
+enum csg_operations{
+    Intersection,
+    Union,
+    Negation
+};
+
+struct csg_unit{
+    int operation;
+    std::array<int, 2> elements;
+};
+
+const llvm_vecsmall::SmallVector<csg_unit, 20> GLOBAL_CSGTREE ={{0, {2, 8}}, {1, {3, -9}}, {0,{-1,4}}, {0, {-2, 5}}, {0, {-3,6}}, {0, {-4, 7}}, {0, {-5, -6}},{2,{9, 0}}, {1, {-7, -8}}};
+
+std::pair<array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> iterTree(const llvm_vecsmall::SmallVector<csg_unit, 20>csgTree,const int curNode,const llvm_vecsmall::SmallVector<array<double , 2>, 20> funcInt){
+    csg_unit curUnit = csgTree[curNode - 1];
+    array<double, 2> interval, childInt1, childInt2;
+    llvm_vecsmall::SmallVector<int, 20> af(funcInt.size(), 1), childAF1(funcInt.size(), 1), childAF2(funcInt.size(), 1);
+    if (curUnit.elements[0] > 0){
+        std::pair<array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> child1 = iterTree(csgTree, curUnit.elements[0], funcInt);
+        childInt1 = child1.first;
+        childAF1 = child1.second;
+    }else{
+        childInt1 = funcInt[-curUnit.elements[0] - 1];
+        childAF1[-curUnit.elements[0] - 1] = 0;
+    }
+    if (childInt1[0] * childInt1[1]>0){
+        for (size_t i = 0; i < childAF1.size(); i++){
+            childAF1[i] = 1;
+        }
+    }
+    if (curUnit.operation != Negation){
+        if (curUnit.elements[1] > 0){
+            std::pair<array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> child2 = iterTree(csgTree, curUnit.elements[1], funcInt);
+            childInt2 = child2.first;
+            childAF2 = child2.second;
+        }else{
+            childInt2 = funcInt[-curUnit.elements[1] - 1];
+            childAF2[-curUnit.elements[1] - 1] = 0;
+        }
+    }
+    if (childInt2[0] * childInt2[1]>0){
+        for (size_t i = 0; i < childAF2.size(); i++){
+            childAF2[i] = 1;
+        }
+    }
+    switch (curUnit.operation){
+        case Intersection:
+            interval = {std::max(childInt1[0], childInt2[0]), std::max(childInt1[1], childInt2[1])};
+            if(interval[0]*interval[1] <= 0){
+                for (int i = 0; i < funcInt.size(); i++){
+                    af[i] = childAF1[i] * childAF2[i];
+                }
+            }
+            break;
+        case Union:
+            interval = {std::min(childInt1[0], childInt2[0]), std::min(childInt1[1], childInt2[1])};
+            if(interval[0]*interval[1] <= 0){
+                for (int i = 0; i < funcInt.size(); i++){
+                    af[i] = childAF1[i] * childAF2[i];
+                }
+            }
+            break;
+        case Negation:
+            interval = {std::min(-childInt1[0], -childInt1[1]), std::max(-childInt1[0], -childInt1[1])};
+            if(interval[0]*interval[1] <= 0)
+                af = childAF1;
+            break;
+        default:
+            std::cout << "not a valid CSG operation" << std::endl;
+    }
+    return std::pair(interval, af);
+}
+
 const std::array<std::array<double, 4>, 16> coeff = {{{2, 1, 0, 0}, {2, 0, 1, 0}, {2, 0, 0, 1}, {0, 2, 1, 0},{0, 2, 0, 1}, {1, 2, 0, 0}, {0, 0, 2, 1}, {1, 0, 2, 0},{0, 1, 2, 0}, {1, 0, 0, 2}, {0, 1, 0, 2}, {0, 0, 1, 2},{0, 1, 1, 1}, {1, 0, 1, 1}, {1, 1, 0, 1}, {1, 1, 1, 0}}};
 // constant matrix to build linear values with
 
@@ -131,16 +212,16 @@ llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> matrixMul
 
 
 bool subTet(std::array<std::array<double, 3>,4> &pts,
-              const llvm_vecsmall::SmallVector<std::array<double,4>, 20> &vals,
-              const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> &grads, const double threshold, bool& active) {
+            const llvm_vecsmall::SmallVector<std::array<double,4>, 20> &vals,
+            const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> &grads, const double threshold, bool& active) {
     std::array<double, 3> p0 = pts[0], p1 = pts[1], p2 = pts[2], p3 = pts[3];
     std::array<double, 3> vec1 = getVec(p1, p0), vec2 = getVec(p2, p0), vec3 = getVec(p3, p0),
     vec4 = getVec(p2, p1), vec5 = getVec(p3, p1), vec6 = getVec(p3, p2);
     double D = det(vec1, vec2, vec3);
     double sqD = D*D;
     bool score = true;
-//    double tetEdgeLen[] = {norm(getVec(p1, p0)),norm(getVec(p2,p0)), norm(getVec(p3,p0)), norm(getVec(p2,p1)), norm(getVec(p3,p1)), norm(getVec(p3,p2))};
-//    double score = *std::max_element(tetEdgeLen, tetEdgeLen + 6); // find the largest edge length using 6 edges.
+    //    double tetEdgeLen[] = {norm(getVec(p1, p0)),norm(getVec(p2,p0)), norm(getVec(p3,p0)), norm(getVec(p2,p1)), norm(getVec(p3,p1)), norm(getVec(p3,p2))};
+    //    double score = *std::max_element(tetEdgeLen, tetEdgeLen + 6); // find the largest edge length using 6 edges.
     const size_t funcNum = vals.size();
     llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> crossMatrix = {cross(vec2, vec3), cross(vec3, vec1), cross(vec1, vec2)};
     llvm_vecsmall::SmallVector<std::array<double, 3>, 20> gradList(funcNum);
@@ -148,16 +229,14 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
     llvm_vecsmall::SmallVector<std::array<double, 16>, 20> diffList(funcNum);
     llvm_vecsmall::SmallVector<double, 20> errorList(funcNum);
     llvm_vecsmall::SmallVector<bool, 20> activeTF(funcNum);
+    llvm_vecsmall::SmallVector<array<double , 2>, 20> funcInt(funcNum);
     int activeNum = 0;
     llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<bool, 20>, 20> zeroXResult(funcNum, llvm_vecsmall::SmallVector<bool, 20>(funcNum));
-    //valarray<double> funcInt[funcNum];
     
     //single function linearity check:
     for (int funcIter = 0; funcIter < funcNum; funcIter++){
         double v0 = vals[funcIter][0], v1 = vals[funcIter][1], v2 = vals[funcIter][2], v3 = vals[funcIter][3];
         std::array<double, 3> g0 = grads[funcIter][0], g1 = grads[funcIter][1], g2 = grads[funcIter][2], g3 = grads[funcIter][3];
-        //        std:: cout << v1 << std::endl;
-        //        std:: cout << g0[0] << ", " << g0[1] << ", " << g0[2] << std::endl;
         // Bezier control points
         std::array<double, 3> v0s = {v0 + dot(g0, vec1) / 3, v0 + dot(g0, vec2) / 3, v0 + dot(g0, vec3) / 3};
         std::array<double, 3> v1s = {v1 + dot(g1, vec4) / 3, v1 + dot(g1, vec5) / 3, v1 - dot(g1, vec1) / 3};
@@ -171,36 +250,75 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         double vMid2 =(9 * (v0s[0] + v0s[2] + v1s[1] + v1s[2] + v3s[0] + v3s[1]) / 6 - v0 - v1 - v3)/ 6;
         //double e3 = (v0s[0] + v0s[1] + v1s[0] + v1s[2] + v2s[1] + v2s[2]) / 6;
         double vMid3 =(9 * (v0s[0] + v0s[1] + v1s[0] + v1s[2] + v2s[1] + v2s[2]) / 6 - v0 - v1 - v2)/ 6;
-
+        
         //storing bezier and linear info for later linearity comparison
         valList[funcIter] = {v0, v1, v2, v3, v0s[0], v0s[1], v0s[2], v1s[0], v1s[1], v1s[2], v2s[0], v2s[1], v2s[2],
             v3s[0], v3s[1], v3s[2], vMid0, vMid1, vMid2, vMid3};
-
-        Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
-        activeTF[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? false : true;
-        single_timer.Stop();
-        if (activeTF[funcIter]){
-            if (!active){
-                active = true;
-            }
-            activeNum++;
-            double d1 = v1-v0, d2 = v2-v0, d3 = v3-v0;
-            llvm_vecsmall::SmallVector<double, 20> unNormF = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{d1, d2, d3}}), crossMatrix)[0];
-            //std:: cout << unNormF[0] << ", " << unNormF[1] << ", " << unNormF[2] << std::endl;
-            gradList[funcIter] = {unNormF[0],unNormF[1],unNormF[2]};
-            for (int i = 0; i < 16; ++i) {
-                diffList[funcIter][i] = valList[funcIter][i + 4] -
-                (v0 * coeff[i][0] + v1 * coeff[i][1] + v2 * coeff[i][2] + v3 * coeff[i][3]) / 3.0;
-            }
-            errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
+        if(GLOBAL_METHOD == IA){
             Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
-            double lhs = errorList[funcIter] * errorList[funcIter] * sqD;
-            double rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
-            if (lhs > rhs) {
-                single_timer.Stop();
-                return score;
-            }
+            activeTF[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? false : true;
             single_timer.Stop();
+            if (activeTF[funcIter]){
+                if (!active){
+                    active = true;
+                }
+                activeNum++;
+                double d1 = v1-v0, d2 = v2-v0, d3 = v3-v0;
+                llvm_vecsmall::SmallVector<double, 20> unNormF = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{d1, d2, d3}}), crossMatrix)[0];
+                gradList[funcIter] = {unNormF[0],unNormF[1],unNormF[2]};
+                for (int i = 0; i < 16; ++i) {
+                    diffList[funcIter][i] = valList[funcIter][i + 4] -
+                    (v0 * coeff[i][0] + v1 * coeff[i][1] + v2 * coeff[i][2] + v3 * coeff[i][3]) / 3.0;
+                }
+                errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
+                Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+                double lhs = errorList[funcIter] * errorList[funcIter] * sqD;
+                double rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
+                if (lhs > rhs) {
+                    single_timer.Stop();
+                    return score;
+                }
+                single_timer.Stop();
+            }
+        }else{
+            funcInt[funcIter] = {*std::min_element(valList[funcIter].begin(), valList[funcIter].end()), *std::max_element(valList[funcIter].begin(), valList[funcIter].end())};
+        }
+    }
+    
+    if (GLOBAL_METHOD == CSG){
+        std::pair<array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> csgResult = iterTree(GLOBAL_CSGTREE, 1, funcInt);
+        if(csgResult.first[0] * csgResult.first[1] > 0){
+            return false;
+        }else{
+            for (size_t funcIter = 0; funcIter < funcNum; funcIter++){
+                Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+                activeTF[funcIter] = !csgResult.second[funcIter];
+                single_timer.Stop();
+                if (activeTF[funcIter]){
+                    if (!active){
+                        active = true;
+                    }
+                    activeNum++;
+                    double v0 = vals[funcIter][0], v1 = vals[funcIter][1], v2 = vals[funcIter][2], v3 = vals[funcIter][3];
+                    double d1 = v1-v0, d2 = v2-v0, d3 = v3-v0;
+                    llvm_vecsmall::SmallVector<double, 20> unNormF = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{d1, d2, d3}}), crossMatrix)[0];
+                    //std:: cout << unNormF[0] << ", " << unNormF[1] << ", " << unNormF[2] << std::endl;
+                    gradList[funcIter] = {unNormF[0],unNormF[1],unNormF[2]};
+                    for (int i = 0; i < 16; ++i) {
+                        diffList[funcIter][i] = valList[funcIter][i + 4] -
+                        (v0 * coeff[i][0] + v1 * coeff[i][1] + v2 * coeff[i][2] + v3 * coeff[i][3]) / 3.0;
+                    }
+                    errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
+                    Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+                    double lhs = errorList[funcIter] * errorList[funcIter] * sqD;
+                    double rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
+                    if (lhs > rhs) {
+                        single_timer.Stop();
+                        return score;
+                    }
+                    single_timer.Stop();
+                }
+            }
         }
     }
     
@@ -249,7 +367,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                 activeDouble_count++;
                 zeroXResult[pair[pairIter][0]][pair[pairIter][1]] = true;
                 zeroXResult[pair[pairIter][1]][pair[pairIter][0]] = true;
-
+                
                 // two function linearity test:
                 std::array<double, 2> w1 = {dot(gradList[pair[pairIter][0]], gradList[pair[pairIter][0]]), dot(gradList[pair[pairIter][0]], gradList[pair[pairIter][1]])};
                 std::array<double, 2> w2 = {dot(gradList[pair[pairIter][0]], gradList[pair[pairIter][1]]), dot(gradList[pair[pairIter][1]], gradList[pair[pairIter][1]])};
@@ -260,7 +378,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                 }
                 std::array<double, 2> perp_w1 = perp(w1);
                 llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> H = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({llvm_vecsmall::SmallVector<double, 20>(std::begin(invPerp_w2), std::end(invPerp_w2)), llvm_vecsmall::SmallVector<double, 20>(std::begin(perp_w1), std::end(perp_w1))}), llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({llvm_vecsmall::SmallVector<double, 20>(std::begin(gradList[pair[pairIter][0]]), std::end(gradList[pair[pairIter][0]])), llvm_vecsmall::SmallVector<double, 20>(std::begin(gradList[pair[pairIter][1]]), std::end(gradList[pair[pairIter][1]]))}));
-
+                
                 //find the largest max error (max squared gamma: the LHS of the equation) among all 16 bezier control points
                 double maxGammaSq = 0;
                 for (int i = 0; i < 16; i++){
