@@ -318,7 +318,9 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
     }
     
     if (GLOBAL_METHOD == CSG){
+        Timer csg_timer(csgtree, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         std::pair<array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> csgResult = iterTree(GLOBAL_CSGTREE, 1, funcInt);
+        csg_timer.Stop();
         if(csgResult.first[0] * csgResult.first[1] > 0){
             return false;
         }else{
