@@ -17,9 +17,9 @@
 //, time spent on double functions' zero crossing test, time spent on three functions' zero crossing test, total subdivision time, total splitting time}
 
 //currently, the zero crossing test is using linear programming based on Gurobi package.
-const int timer_amount = 11;
+const int timer_amount = 10;
 
-std::array<double, timer_amount> profileTimer = {0,0,0,0,0,0,0,0,0,0,0};
+std::array<double, timer_amount> profileTimer = {0,0,0,0,0,0,0,0,0,0};
 
 std::array<std::string, timer_amount> time_label = {"total time: ",
     "single func: ",
@@ -30,8 +30,7 @@ std::array<std::string, timer_amount> time_label = {"total time: ",
     "sub three func: ",
     "subdivision: ",
     "evaluations: ",
-    "splitting: ",
-    "csg tree"
+    "splitting: "
 };
 enum timeProfileName{
     total_time,
@@ -43,8 +42,7 @@ enum timeProfileName{
     sub_threeFunc,
     subdivision,
     evaluation,
-    splitting,
-    csgtree
+    splitting
 };
 
 std::array<double, timer_amount> combine_timer (const std::array<double, timer_amount> &profile, const std::array<double, timer_amount> &timer){
@@ -107,9 +105,6 @@ public:
             case splitting:
                 m_timeProfile[9] += ms;
                 break;
-            case csgtree:
-                m_timeProfile[10] += ms;
-                break;
             default:
                 std::cout << "no matching time profile identifier" << std::endl;
         }
@@ -120,7 +115,7 @@ public:
 private:
     timeProfileName m_Name;
     Fn m_Func;
-    std::array<double, timer_amount> m_timeProfile = {0,0,0,0,0,0,0,0,0,0,0};
+    std::array<double, timer_amount> m_timeProfile = {0,0,0,0,0,0,0,0,0,0};
     std::chrono::time_point<std::chrono::high_resolution_clock> starterTime;
 };
 
