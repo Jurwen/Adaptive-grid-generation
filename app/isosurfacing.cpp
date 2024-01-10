@@ -48,7 +48,9 @@ int main(int argc, const char *argv[])
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
     app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
     CLI11_PARSE(app, argc, argv);
-
+//    bool (*sub_function)(std::array<std::array<double, 3>,4>,
+//                         const llvm_vecsmall::SmallVector<std::array<double,4>, 20>,
+//                         const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20>, const double, bool);
     // Read mesh
     mtet::MTetMesh mesh = mtet::load_mesh(args.mesh_file);
     
@@ -146,7 +148,11 @@ int main(int argc, const char *argv[])
         bool subResult;
         {
             Timer sub_timer(subdivision, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
-            subResult = subTet(pts, vals, grads, threshold, isActive);
+            if (GLOBAL_METHOD != MI){
+                subResult = subTet(pts, vals, grads, threshold, isActive);
+            }else{
+                subResult = subMI(pts, vals, grads, threshold, isActive);
+            }
             sub_timer.Stop();
         }
         vertex_active_map[vertexHash(vs)] = isActive;
