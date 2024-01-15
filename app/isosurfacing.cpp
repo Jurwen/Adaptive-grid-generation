@@ -11,6 +11,7 @@
 #include <CLI/CLI.hpp>
 #include <tet_quality.h>
 #include <timer.h>
+#include <grid_mesh.h>
 
 
 using namespace mtet;
@@ -53,8 +54,14 @@ int main(int argc, const char *argv[])
 //                         const llvm_vecsmall::SmallVector<std::array<double,4>, 20>,
 //                         const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20>, const double, bool);
     // Read mesh
-    mtet::MTetMesh mesh = mtet::load_mesh(args.mesh_file);
-    
+    mtet::MTetMesh mesh;
+    if (args.mesh_file.find(".json") != std::string::npos){
+        mesh = grid_mesh::load_tet_mesh(args.mesh_file);
+        mtet::save_mesh("init.msh", mesh);
+    } else {
+        mesh = mtet::load_mesh(args.mesh_file);
+    }
+
     // Read implicit function
     vector<unique_ptr<ImplicitFunction<double>>> functions;
     load_functions(args.function_file, functions);
