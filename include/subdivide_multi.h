@@ -372,15 +372,15 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
     const int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
     llvm_vecsmall::SmallVector<array<int, 2>,40> pair(pairNum);
     llvm_vecsmall::SmallVector<array<int, 3>, 100> triple(triNum);
-    int pairIter = 0, triIter = 0;
+    int pairIt = 0, triIt = 0;
     for (int i = 0; i < activeNum - 1; i++){
         for (int j = i + 1; j < activeNum; j++){
-            pair[pairIter] = {activeFunc[i], activeFunc[j]};
-            pairIter ++;
+            pair[pairIt] = {activeFunc[i], activeFunc[j]};
+            pairIt ++;
             if (j < activeNum - 1){
                 for (int k = j + 1; k < activeNum; k++){
-                    triple[triIter] = {activeFunc[i], activeFunc[j], activeFunc[k]};
-                    triIter ++;
+                    triple[triIt] = {activeFunc[i], activeFunc[j], activeFunc[k]};
+                    triIt ++;
                 }
             }
         }
@@ -440,7 +440,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         for (int triIter = 0; triIter < triNum; triIter ++){
             if(!(zeroXResult[triple[triIter][0]][triple[triIter][1]]&&zeroXResult[triple[triIter][0]][triple[triIter][2]]&&zeroXResult[triple[triIter][1]][triple[triIter][2]]))
                 continue;
-            std::array<double, 60> nPoints = transpose3d({valList[pair[pairIter][0]], valList[pair[pairIter][1]], valList[triple[triIter][2]]});
+            std::array<double, 60> nPoints = transpose3d({valList[triple[triIter][0]], valList[triple[triIter][1]], valList[triple[triIter][2]]});
             std::array<double, 3> query = {0.0, 0.0, 0.0}; // X, Y, Z
             sub_call_three ++;
             Timer sub_timer(sub_threeFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
