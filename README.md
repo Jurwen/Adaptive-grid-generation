@@ -37,7 +37,7 @@ In this example, `cube6.msh` is the initial mesh file, `sphere.json` is the impl
 The following example demonstrates how to use the `isosurfacing` tool on data from Boundary-sampled Halfspaces (BSH):
 
 ```bash
-./isosurfacing "../data/BSH/figure1/(b)/input/grid_1.json" "../data/BSH/figure1/(b)/input/config.json" -t 0.001 -m 10000 
+./isosurfacing "data/BSH/figure1/(b)/input/grid_1.json" "data/BSH/figure1/(b)/input/config.json" -t 0.001 -m 10000 
 ```
 More BSH examples can be found in the [BSH repo](https://github.com/duxingyi-charles/Boundary_Sampled_Halfspaces/tree/d84ab6877ad4850d5c11e915690eeb1010708de9/examples).
 
