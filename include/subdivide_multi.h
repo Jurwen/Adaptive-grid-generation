@@ -542,19 +542,19 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
     llvm_vecsmall::SmallVector<array<int, 2>,40> pair(pairNum);
     llvm_vecsmall::SmallVector<array<int, 3>, 100> triple(triNum);
     llvm_vecsmall::SmallVector<array<int, 4>, 300> quad(quadNum);
-    int pairIter = 0, triIter = 0, quadIter = 0;
+    int pairIt = 0, triIt = 0, quadIt = 0;
     for (int i = 0; i < activeNum - 1; i++){
         for (int j = i + 1; j < activeNum; j++){
-            pair[pairIter] = {activeFunc[i], activeFunc[j]};
-            pairIter ++;
+            pair[pairIt] = {activeFunc[i], activeFunc[j]};
+            pairIt ++;
             if (j < activeNum - 1){
                 for (int k = j + 1; k < activeNum; k++){
-                    triple[triIter] = {activeFunc[i], activeFunc[j], activeFunc[k]};
-                    triIter ++;
+                    triple[triIt] = {activeFunc[i], activeFunc[j], activeFunc[k]};
+                    triIt ++;
                     if (k < activeNum - 1){
                         for (int m = k + 1; m < activeNum; m++){
-                            quad[quadIter] = {activeFunc[i], activeFunc[j], activeFunc[k], activeFunc[m]};
-                            quadIter++;
+                            quad[quadIt] = {activeFunc[i], activeFunc[j], activeFunc[k], activeFunc[m]};
+                            quadIt++;
                         }
                     }
                 }
