@@ -291,8 +291,10 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             activeTF[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? false : true;
             single_timer.Stop();
             if (activeTF[funcIter]){
-                if (!active){
-                    active = true;
+                if (GLOBAL_METHOD == IA){
+                    if (!active){
+                        active = true;
+                    }
                 }
                 activeNum++;
                 double d1 = v1-v0, d2 = v2-v0, d3 = v3-v0;

@@ -47,6 +47,7 @@ int main(int argc, const char *argv[])
     app.add_option("--tree", args.csg_file, "CSG Tree file");
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
     app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
+    app.add_option("-d, --dfs", args.dfs, "toggle DFS Mode");
     CLI11_PARSE(app, argc, argv);
 //    bool (*sub_function)(std::array<std::array<double, 3>,4>,
 //                         const llvm_vecsmall::SmallVector<std::array<double,4>, 20>,
@@ -235,6 +236,7 @@ int main(int argc, const char *argv[])
     //std::cout << "sub three func calls: " << sub_call_three << std::endl;
     double min_rratio_all = 1;
     double min_rratio_active = 1;
+    std::vector<mtet::TetId> activeTetId;
     mesh.seq_foreach_tet([&](mtet::TetId tid, std::span<const VertexId, 4> data) {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
         std::array<valarray<double>,4> vallPoints;
@@ -256,6 +258,7 @@ int main(int argc, const char *argv[])
         if(vertex_active_map.contains(vertexHash(vs))){
             if (vertex_active_map[vertexHash(vs)]){
                 activeTet++;
+                activeTetId.push_back(tid);
                 if (ratio < min_rratio_active){
                     min_rratio_active = ratio;
                 }
@@ -266,8 +269,13 @@ int main(int argc, const char *argv[])
     save_timings("timings.json",time_label, profileTimer);
     // save statistics
     save_metrics("stats.json", tet_metric_labels, {(double)mesh.get_num_tets(), activeTet, min_rratio_all, min_rratio_active, (double)sub_call_two, (double) sub_call_three});
-    //write mesh
-    mtet::save_mesh("output.msh", mesh);
-    
+    //write mesh and active tets
+    if(args.dfs == 1){
+        mtet::save_mesh("tet_mesh_dfs.msh", mesh);
+        mtet::save_mesh("active_tets_dfs.msh", mesh, std::span<mtet::TetId>(activeTetId));
+    }else{
+        mtet::save_mesh("tet_mesh.msh", mesh);
+        mtet::save_mesh("active_tets.msh", mesh, std::span<mtet::TetId>(activeTetId));
+    }
     return 0;
 }
