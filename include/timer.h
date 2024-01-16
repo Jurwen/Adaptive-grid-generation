@@ -22,8 +22,8 @@ const int timer_amount = 10;
 std::array<double, timer_amount> profileTimer = {0,0,0,0,0,0,0,0,0,0};
 
 std::array<std::string, timer_amount> time_label = {"total time: ",
-    "single func: ",
     "get active multiples: ",
+    "single func: ",
     "two func: ",
     "three func: ",
     "sub two func: ",

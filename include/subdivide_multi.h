@@ -360,9 +360,9 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         }
     }
     
-    Timer get_func_timer(getActiveMuti, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+    Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
     if(activeNum < 2){
-        get_func_timer.Stop();
+        single_timer.Stop();
         return false;
     }
     llvm_vecsmall::SmallVector<int, 20> activeFunc(activeNum);
@@ -373,7 +373,7 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             activeFuncIter++;
         }
     }
-    get_func_timer.Stop();
+    single_timer.Stop();
     const int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
     llvm_vecsmall::SmallVector<array<int, 2>,40> pair(pairNum);
     llvm_vecsmall::SmallVector<array<int, 3>, 100> triple(triNum);
