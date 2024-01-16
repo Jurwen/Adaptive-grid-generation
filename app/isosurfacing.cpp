@@ -86,12 +86,14 @@ int main(int argc, const char *argv[])
     //precomputing active multiples' indices:
     multiple_indices.resize(funcNum);
     for (int funcIter = 0; funcIter < funcNum; funcIter++){
-        multiple_indices[funcIter].resize(2);
+        multiple_indices[funcIter].resize(3);
         int activeNum = funcIter + 1;
         int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
+        int quadNum = activeNum * (activeNum - 1) * (activeNum - 2) * (activeNum - 3)/ 24;
         llvm_vecsmall::SmallVector<array<int, 4>,100> pair(pairNum);
         llvm_vecsmall::SmallVector<array<int, 4>, 100> triple(triNum);
-        int pairIt = 0, triIt = 0;
+        llvm_vecsmall::SmallVector<array<int, 4>, 100> quad(quadNum);
+        int pairIt = 0, triIt = 0, quadIt = 0;
         for (int i = 0; i < activeNum - 1; i++){
             for (int j = i + 1; j < activeNum; j++){
                 pair[pairIt] = {i, j, 0, 0};
@@ -100,11 +102,23 @@ int main(int argc, const char *argv[])
                     for (int k = j + 1; k < activeNum; k++){
                         triple[triIt] = {i, j, k, 0};
                         triIt ++;
+                        if (GLOBAL_METHOD == MI){
+                            if (k < activeNum - 1){
+                                for (int m = k + 1; m < activeNum; m++){
+                                    quad[quadIt] = {i, j, k, m};
+                                    quadIt++;
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        multiple_indices[funcIter] = {pair, triple};
+        if (GLOBAL_METHOD == MI){
+            multiple_indices[funcIter] = {pair, triple, quad};
+        }else{
+            multiple_indices[funcIter] = {pair, triple};
+        }
     }
     int largeNumber;
     if (args.bfs || args.dfs){

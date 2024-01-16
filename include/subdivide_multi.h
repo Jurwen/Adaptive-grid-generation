@@ -543,37 +543,39 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
     if(activeNum < 2)
         return false;
     
-    Timer get_func_timer(getActiveMuti, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
-    
+    //Timer get_func_timer(getActiveMuti, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
     
     
     const int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6, quadNum = activeNum * (activeNum - 1) * (activeNum - 2) * (activeNum - 3)/ 24;
     llvm_vecsmall::SmallVector<array<int, 2>,40> pair(pairNum);
     llvm_vecsmall::SmallVector<array<int, 3>, 100> triple(triNum);
     llvm_vecsmall::SmallVector<array<int, 4>, 300> quad(quadNum);
-    int pairIt = 0, triIt = 0, quadIt = 0;
-    for (int i = 0; i < activeNum - 1; i++){
-        for (int j = i + 1; j < activeNum; j++){
-            pair[pairIt] = {activeFunc[i], activeFunc[j]};
-            pairIt ++;
-            if (j < activeNum - 1){
-                for (int k = j + 1; k < activeNum; k++){
-                    triple[triIt] = {activeFunc[i], activeFunc[j], activeFunc[k]};
-                    triIt ++;
-                    if (k < activeNum - 1){
-                        for (int m = k + 1; m < activeNum; m++){
-                            quad[quadIt] = {activeFunc[i], activeFunc[j], activeFunc[k], activeFunc[m]};
-                            quadIt++;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    get_func_timer.Stop();
+    llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<array<int, 4>, 100>, 3> multiples = multiple_indices[activeNum - 1];
+//    int pairIt = 0, triIt = 0, quadIt = 0;
+//    for (int i = 0; i < activeNum - 1; i++){
+//        for (int j = i + 1; j < activeNum; j++){
+//            pair[pairIt] = {activeFunc[i], activeFunc[j]};
+//            pairIt ++;
+//            if (j < activeNum - 1){
+//                for (int k = j + 1; k < activeNum; k++){
+//                    triple[triIt] = {activeFunc[i], activeFunc[j], activeFunc[k]};
+//                    triIt ++;
+//                    if (k < activeNum - 1){
+//                        for (int m = k + 1; m < activeNum; m++){
+//                            quad[quadIt] = {activeFunc[i], activeFunc[j], activeFunc[k], activeFunc[m]};
+//                            quadIt++;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    get_func_timer.Stop();
     
     for (int pairIter = 0; pairIter < pairNum; pairIter ++){
         Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+        array<int, 2> pairIndices = {multiples[0][pairIter][0],multiples[0][pairIter][1]};
+        pair[pairIter] = {activeFunc[pairIndices[0]], activeFunc[pairIndices[1]]};
         array<double, 20> diff_at_point;
         int funcIndex1 = pair[pairIter][0];
         int funcIndex2 = pair[pairIter][1];
@@ -641,6 +643,8 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
         Timer timer(twoFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         bool zeroX;
         for (int tripleIter = 0; tripleIter < triNum; tripleIter ++){
+            array<int, 3> tripleIndices = {multiples[1][tripleIter][0], multiples[1][tripleIter][1], multiples[1][tripleIter][2]};
+            triple[tripleIter] = {activeFunc[tripleIndices[0]], activeFunc[tripleIndices[1]], activeFunc[tripleIndices[2]]};
             int funcIndex1 = triple[tripleIter][0];
             int funcIndex2 = triple[tripleIter][1];
             int funcIndex3 = triple[tripleIter][2];
@@ -704,6 +708,8 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
         Timer timer(threeFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         bool zeroX;
         for (int quadIter = 0; quadIter < quadNum; quadIter ++){
+            array<int, 4> quadIndices = {multiples[2][quadIter][0], multiples[2][quadIter][1], multiples[2][quadIter][2],multiples[2][quadIter][3]};
+            quad[quadIter] = {activeFunc[quadIndices[0]], activeFunc[quadIndices[1]], activeFunc[quadIndices[2]],activeFunc[quadIndices[3]]};
             int funcIndex1 = quad[quadIter][0];
             int funcIndex2 = quad[quadIter][1];
             int funcIndex3 = quad[quadIter][2];
