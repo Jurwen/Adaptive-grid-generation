@@ -83,6 +83,29 @@ int main(int argc, const char *argv[])
         GLOBAL_METHOD = MI;
     }
     
+    //precomputing active multiples' indices:
+    multiple_indices.resize(funcNum);
+    for (int funcIter = 0; funcIter < funcNum; funcIter++){
+        multiple_indices[funcIter].resize(2);
+        int activeNum = funcIter + 1;
+        int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
+        llvm_vecsmall::SmallVector<array<int, 4>,100> pair(pairNum);
+        llvm_vecsmall::SmallVector<array<int, 4>, 100> triple(triNum);
+        int pairIt = 0, triIt = 0;
+        for (int i = 0; i < activeNum - 1; i++){
+            for (int j = i + 1; j < activeNum; j++){
+                pair[pairIt] = {i, j, 0, 0};
+                pairIt ++;
+                if (j < activeNum - 1){
+                    for (int k = j + 1; k < activeNum; k++){
+                        triple[triIt] = {i, j, k, 0};
+                        triIt ++;
+                    }
+                }
+            }
+        }
+        multiple_indices[funcIter] = {pair, triple};
+    }
     int largeNumber;
     if (args.bfs || args.dfs){
         largeNumber = 0;

@@ -23,6 +23,8 @@ using namespace std;
 int sub_call_two = 0;
 int sub_call_three = 0;
 
+llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<array<int, 4>, 100>, 3>, 20> multiple_indices;
+
 enum geo_obj {
     IA,
     CSG,
@@ -359,8 +361,10 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
     }
     
     Timer get_func_timer(getActiveMuti, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
-    if(activeNum < 2)
+    if(activeNum < 2){
+        get_func_timer.Stop();
         return false;
+    }
     llvm_vecsmall::SmallVector<int, 20> activeFunc(activeNum);
     int activeFuncIter = 0;
     for (int funcIter = 0; funcIter < funcNum; funcIter++){
@@ -369,30 +373,33 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             activeFuncIter++;
         }
     }
+    get_func_timer.Stop();
     const int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
     llvm_vecsmall::SmallVector<array<int, 2>,40> pair(pairNum);
     llvm_vecsmall::SmallVector<array<int, 3>, 100> triple(triNum);
-    int pairIt = 0, triIt = 0;
-    for (int i = 0; i < activeNum - 1; i++){
-        for (int j = i + 1; j < activeNum; j++){
-            pair[pairIt] = {activeFunc[i], activeFunc[j]};
-            pairIt ++;
-            if (j < activeNum - 1){
-                for (int k = j + 1; k < activeNum; k++){
-                    triple[triIt] = {activeFunc[i], activeFunc[j], activeFunc[k]};
-                    triIt ++;
-                }
-            }
-        }
-    }
-    get_func_timer.Stop();
+    llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<array<int, 4>, 100>, 3> multiples = multiple_indices[activeNum - 1];
+//    int pairIt = 0, triIt = 0;
+//    for (int i = 0; i < activeNum - 1; i++){
+//        for (int j = i + 1; j < activeNum; j++){
+//            pair[pairIt] = {activeFunc[i], activeFunc[j]};
+//            pairIt ++;
+//            if (j < activeNum - 1){
+//                for (int k = j + 1; k < activeNum; k++){
+//                    triple[triIt] = {activeFunc[i], activeFunc[j], activeFunc[k]};
+//                    triIt ++;
+//                }
+//            }
+//        }
+//    }
+    
     // 2-function checks
     int activeDouble_count = 0;
     {
         Timer timer(twoFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         bool zeroX;
         for (int pairIter = 0; pairIter < pairNum; pairIter ++){
-            
+            array<int, 2> pairIndices = {multiples[0][pairIter][0],multiples[0][pairIter][1]};
+            pair[pairIter] = {activeFunc[pairIndices[0]], activeFunc[pairIndices[1]]};
             std::array<double, 40> nPoints = transpose2d({valList[pair[pairIter][0]], valList[pair[pairIter][1]]});// X0, Y0, X1, Y1, ...
             std::array<double, 2> query = {0.0, 0.0}; // X, Y
             sub_call_two ++;
@@ -438,6 +445,8 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         Timer timer(threeFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         bool zeroX;
         for (int triIter = 0; triIter < triNum; triIter ++){
+            array<int, 3> tripleIndices = {multiples[1][triIter][0], multiples[1][triIter][1], multiples[1][triIter][2]};
+            triple[triIter] = {activeFunc[tripleIndices[0]], activeFunc[tripleIndices[1]], activeFunc[tripleIndices[2]]};
             if(!(zeroXResult[triple[triIter][0]][triple[triIter][1]]&&zeroXResult[triple[triIter][0]][triple[triIter][2]]&&zeroXResult[triple[triIter][1]][triple[triIter][2]]))
                 continue;
             std::array<double, 60> nPoints = transpose3d({valList[triple[triIter][0]], valList[triple[triIter][1]], valList[triple[triIter][2]]});
