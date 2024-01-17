@@ -17,7 +17,6 @@
 using namespace mtet;
 
 const bool GLOBAL_ANALYSIS_MODE = false;
-
 //hash for mounting a boolean that represents the activeness to a tet
 //since the tetid isn't const during the process, mount the boolean using vertexids of 4 corners.
 uint64_t vertexHash(std::span<VertexId, 4>& x)
@@ -38,6 +37,7 @@ int main(int argc, const char *argv[])
         string csg_file;
         bool bfs = false;
         bool dfs = false;
+        bool curve_network = false;
         //bool analysis_mode = false;
     } args;
     CLI::App app{"Longest Edge Bisection Refinement"};
@@ -49,6 +49,7 @@ int main(int argc, const char *argv[])
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
     app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
     app.add_option("-d, --dfs", args.dfs, "toggle DFS Mode");
+    app.add_option("-c, --curve_network", args.curve_network, "Generate Curve Network only");
     CLI11_PARSE(app, argc, argv);
 //    bool (*sub_function)(std::array<std::array<double, 3>,4>,
 //                         const llvm_vecsmall::SmallVector<std::array<double,4>, 20>,
@@ -81,6 +82,9 @@ int main(int argc, const char *argv[])
     }
     if (args.method == "MI"){
         GLOBAL_METHOD = MI;
+    }
+    if (args.curve_network){
+        curve_network = true;
     }
     
     //precomputing active multiples' indices:

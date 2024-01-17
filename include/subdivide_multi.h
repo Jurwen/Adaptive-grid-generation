@@ -32,6 +32,7 @@ enum geo_obj {
 };
 
 int GLOBAL_METHOD = IA;
+bool curve_network = false;
 
 enum csg_operations{
     Intersection,
@@ -309,7 +310,12 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                 errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
                 Timer single2_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
                 double lhs = errorList[funcIter] * errorList[funcIter] * sqD;
-                double rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
+                double rhs;
+                if (!curve_network){
+                    rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
+                }else{
+                    rhs = numeric_limits<double>::infinity() * dot(gradList[funcIter], gradList[funcIter]);
+                }
                 if (lhs > rhs) {
                     single2_timer.Stop();
                     return score;
@@ -349,7 +355,12 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                     errorList[funcIter] = std::max(*max_element(diffList[funcIter].begin(), diffList[funcIter].end()), std::abs(*min_element(diffList[funcIter].begin(), diffList[funcIter].end())));
                     Timer single2_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
                     double lhs = errorList[funcIter] * errorList[funcIter] * sqD;
-                    double rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
+                    double rhs;
+                    if (!curve_network){
+                        rhs = threshold * threshold * dot(gradList[funcIter], gradList[funcIter]);
+                    }else{
+                        rhs = numeric_limits<double>::infinity() * dot(gradList[funcIter], gradList[funcIter]);
+                    }
                     if (lhs > rhs) {
                         single2_timer.Stop();
                         return score;
@@ -626,7 +637,12 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
                 grad[i] = gradList[funcIndex1][i] - gradList[funcIndex2][i];
             }
             double lhs = error * error * sqD;
-            double rhs = threshold * threshold * dot(grad, grad);
+            double rhs;
+            if (!curve_network){
+                rhs = threshold * threshold * dot(grad, grad);
+            }else{
+                rhs = numeric_limits<double>::infinity() * dot(grad, grad);
+            }
             //cout << lhs << " " << rhs << endl;
             if (lhs > rhs) {
                 single2_timer.Stop();
