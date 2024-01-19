@@ -1,0 +1,17 @@
+[
+	{
+		"type":"shader",
+		"name": "cube",
+		"delta": 1e-8
+	},
+	{
+		"type":"shader",
+		"name": "key",
+		"delta": 1e-8
+	},
+	{
+		"type":"shader",
+		"name": "cables",
+		"delta": 1e-8
+	}
+]
