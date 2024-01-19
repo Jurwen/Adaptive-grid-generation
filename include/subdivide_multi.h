@@ -7,8 +7,9 @@
 
 #ifndef subdivide_multi_h
 #define subdivide_multi_h
-
-
+//#define No_Multi_Check
+//#define Only_ZeroX
+//#define Only_Geometry
 #include <iostream>
 #include <string>
 #include <valarray>
@@ -370,7 +371,6 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             }
         }
     }
-    
     Timer single_timer(singleFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
     if(activeNum < 2){
         single_timer.Stop();
@@ -417,6 +417,19 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             Timer sub_timer(sub_twoFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             zeroX = convex_hull_membership::contains<2, double>(nPoints, query);
             sub_timer.Stop();
+#ifdef No_Multi_Check
+            zeroX = false;
+#endif
+#ifdef Only_Geometry
+            zeroX = true;
+#endif
+#ifdef Only_ZeroX
+            if (zeroX){
+                return score;
+            }else{
+                return false;
+            }
+#endif
             if (zeroX){
                 activeDouble_count++;
                 zeroXResult[pair[pairIter][0]][pair[pairIter][1]] = true;
