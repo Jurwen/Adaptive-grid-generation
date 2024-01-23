@@ -1,0 +1,32 @@
+[
+    {
+        "type":"sphere",
+        "center":[
+            -0.496,
+            -1.516,
+            0.0
+        ],
+        "radius":2.0,
+        "squared": false
+    },
+    {
+        "type":"sphere",
+        "center":[
+            -0.63,
+            0.452,
+            0.0
+        ],
+        "radius":1.0,
+        "squared": false
+    },
+    {
+        "type":"sphere",
+        "center":[
+            0.636,
+            -0.64,
+            0.0
+        ],
+        "radius":1.348,
+        "squared": false
+    }
+]

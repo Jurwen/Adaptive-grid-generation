@@ -1,0 +1,58 @@
+[
+    {
+        "type": "Union",
+        "elements": [
+            2,
+            3
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            8,
+            -8
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -1,
+            4
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -2,
+            5
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -3,
+            6
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -4,
+            7
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -5,
+            -6
+        ]
+    },
+    {
+        "type": "Negation",
+        "elements": [
+            -7,
+            0
+        ]
+    }
+]

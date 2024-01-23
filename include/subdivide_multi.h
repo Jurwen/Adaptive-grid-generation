@@ -10,6 +10,11 @@
 //#define No_Multi_Check
 //#define Only_ZeroX
 //#define Only_Geometry
+//#define No_Multi_Check_3
+//#define Only_ZeroX_3
+//#define Only_Geometry_3
+//#define CSG_Base
+//#define MI_Base
 #include <iostream>
 #include <string>
 #include <valarray>
@@ -332,6 +337,12 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
         //Timer csg_timer(csgtree, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         std::pair<array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> csgResult = iterTree(GLOBAL_CSGTREE, 1, funcInt);
         //csg_timer.Stop();
+#ifdef CSG_Base
+        csgResult.second.resize(funcNum);
+        for (size_t funcIter = 0; funcIter < funcNum; funcIter++){
+            csgResult.second[funcIter] = get_sign(*std::max_element(valList[funcIter].begin(), valList[funcIter].end())) == get_sign(*std::min_element(valList[funcIter].begin(), valList[funcIter].end())) ? 1 : 0;;
+        }
+#endif
         if(csgResult.first[0] * csgResult.first[1] > 0){
             return false;
         }else{
@@ -479,6 +490,19 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
             Timer sub_timer(sub_threeFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             zeroX = convex_hull_membership::contains<3, double>(nPoints, query);
             sub_timer.Stop();
+#ifdef No_Multi_Check_3
+            return false;
+#endif
+#ifdef Only_Geometry_3
+            zeroX = true;
+#endif
+#ifdef Only_ZeroX_3
+            if (zeroX){
+                return score;
+            }else{
+                return false;
+            }
+#endif
             if (zeroX){
                 std::array<double, 3> fi = gradList[triple[triIter][0]];
                 std::array<double, 3> fj = gradList[triple[triIter][1]];
@@ -561,9 +585,13 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
             //active_valList.push_back(valList[funcIter]);
         }
     }
-    
+#ifdef MI_Base
+    activeFunc.resize(funcNum);
+    for (size_t funcIter = 0; funcIter < funcNum; funcIter++){
+        activeFunc[funcIter] = funcIter;
+    }
+#endif
     int activeNum = activeFunc.size();
-    
     if(activeNum < 2)
         return false;
     

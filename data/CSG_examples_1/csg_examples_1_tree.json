@@ -1,0 +1,30 @@
+[
+    {
+        "type": "Intersection",
+        "elements": [
+            2,
+            3
+        ]
+    },
+    {
+        "type": "Negation",
+        "elements": [
+            -1,
+            0
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -2,
+            4
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -3,
+            -4
+        ]
+    }
+]

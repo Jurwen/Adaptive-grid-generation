@@ -1,0 +1,47 @@
+[
+    {
+        "type":"cylinder",
+        "axis_point":[
+            0.326795,
+            0.6,
+            0.5
+        ],
+        "axis_vector":[
+            0,
+            0,
+            1
+        ],
+        "radius":0.2,
+        "squared": true
+    },
+    {
+        "type":"cylinder",
+        "axis_point":[
+            0.673205,
+            0.6,
+            0.5
+        ],
+        "axis_vector":[
+            0.100335,
+            0,
+            1
+        ],
+        "radius":0.2,
+        "squared": true
+    },
+    {
+        "type":"cylinder",
+        "axis_point":[
+            0.5,
+            0.5,
+            0.5
+        ],
+        "axis_vector":[
+            0,
+            -0.100335,
+            1
+        ],
+        "radius":0.2,
+        "squared": true
+    }
+]
