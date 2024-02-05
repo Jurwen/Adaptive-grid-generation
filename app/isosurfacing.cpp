@@ -32,7 +32,7 @@ int main(int argc, const char *argv[])
         string mesh_file;
         string function_file;
         double threshold = 0.0001;
-        double alpha = 1;
+        double alpha = std::numeric_limits<double>::infinity();
         int max_elements = -1;
         string method = "IA";
         string csg_file;
@@ -73,6 +73,7 @@ int main(int argc, const char *argv[])
         args.max_elements = numeric_limits<int>::max();
     }
     double threshold = args.threshold;
+    double alpha = args.alpha;
     if (args.method == "IA"){
         GLOBAL_METHOD = IA;
     }
@@ -251,9 +252,42 @@ int main(int argc, const char *argv[])
         {
             std::pop_heap(Q.begin(), Q.end(), comp);
             auto [edge_length, eid] = Q.back();
-            Q.pop_back();
-            if (!mesh.has_edge(eid))
+            if (!mesh.has_edge(eid)){
+                Q.pop_back();
                 continue;
+            }
+            //implement alpha value:
+            mtet::Scalar comp_edge_length = alpha * edge_length;
+            bool addedActive = false;
+            mesh.foreach_tet_around_edge(eid,[&](mtet::TetId tid){
+                std::span<VertexId, 4> vs = mesh.get_tet(tid);
+                if(vertex_active_map.contains(vertexHash(vs))){
+                    if (vertex_active_map[vertexHash(vs)]){
+                        mtet::EdgeId longest_edge;
+                        mtet::Scalar longest_edge_length = 0;
+                        mesh.foreach_edge_in_tet(tid, [&](mtet::EdgeId eid_active, mtet::VertexId v0, mtet::VertexId v1)
+                                                 {
+                            auto p0 = mesh.get_vertex(v0);
+                            auto p1 = mesh.get_vertex(v1);
+                            mtet::Scalar l = (p0[0] - p1[0]) * (p0[0] - p1[0]) + (p0[1] - p1[1]) * (p0[1] - p1[1]) +
+                            (p0[2] - p1[2]) * (p0[2] - p1[2]);
+                            if (l > longest_edge_length) {
+                                longest_edge_length = l;
+                                longest_edge = eid_active;
+                            }
+                        });
+                        if (longest_edge_length > comp_edge_length) {
+                            Q.emplace_back(longest_edge_length, longest_edge);
+                            addedActive = true;
+                        }
+                    }
+                }
+            });
+            if(addedActive){
+                std::push_heap(Q.begin(), Q.end(), comp);
+                continue;
+            }
+            Q.pop_back();
             Timer split_timer(splitting, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             auto [vid, eid0, eid1] = mesh.split_edge(eid);
             split_timer.Stop();
