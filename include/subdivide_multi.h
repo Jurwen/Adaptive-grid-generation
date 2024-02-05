@@ -718,6 +718,9 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
             Timer sub_timer(sub_twoFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             zeroX = convex_hull_membership::contains<2, double>(nPoints, query);
             sub_timer.Stop();
+#ifdef No_Multi_Check
+            return false;
+#endif
             if (zeroX){
                 activeTriple_count++;
                 array<double, 16> diff_twofunc1, diff_twofunc2;
@@ -785,6 +788,9 @@ bool subMI(std::array<std::array<double, 3>,4> &pts,
             Timer sub_timer(sub_threeFunc, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             zeroX = convex_hull_membership::contains<3, double>(nPoints, query);
             sub_timer.Stop();
+#ifdef No_Multi_Check_3
+            return false;
+#endif
             if (zeroX){
                 array<double, 16> diff_twofunc1, diff_twofunc2, diff_twofunc3;
                 for (int i = 0; i < 16; ++i){

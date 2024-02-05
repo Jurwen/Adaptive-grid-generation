@@ -32,6 +32,7 @@ int main(int argc, const char *argv[])
         string mesh_file;
         string function_file;
         double threshold = 0.0001;
+        double alpha = 1;
         int max_elements = -1;
         string method = "IA";
         string csg_file;
@@ -44,11 +45,12 @@ int main(int argc, const char *argv[])
     app.add_option("mesh", args.mesh_file, "Initial mesh file")->required();
     app.add_option("function", args.function_file, "Implicit function file")->required();
     app.add_option("-t,--threshold", args.threshold, "Threshold value");
+    app.add_option("-a,--alpha", args.alpha, "Alpha value");
     app.add_option("-o,--option", args.method, "Options of implicit manifold");
     app.add_option("--tree", args.csg_file, "CSG Tree file");
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
-    app.add_option("-b, --bfs", args.bfs, "toggle BFS Mode");
-    app.add_option("-d, --dfs", args.dfs, "toggle DFS Mode");
+    app.add_option("-b, --bfs", args.bfs, "Toggle BFS Mode");
+    app.add_option("-d, --dfs", args.dfs, "Toggle DFS Mode");
     app.add_option("-c, --curve_network", args.curve_network, "Generate Curve Network only");
     CLI11_PARSE(app, argc, argv);
     // Read mesh
