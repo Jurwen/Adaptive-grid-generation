@@ -6,6 +6,8 @@
 
 #ifndef tet_quality_h
 #define tet_quality_h
+#include <mtet/mtet.h>
+#include <mtet/io.h>
 
 double dot(const valarray<double> &a, const valarray<double> &b) {
     return (a * b).sum();
@@ -91,6 +93,23 @@ double tet_radius_ratio(const std::array<valarray<double>,4> &pts)
 }
 
 bool save_metrics(const std::string& filename,
+                  const std::array<std::string, 6>& tet_metric_labels,
+                  const std::valarray<double>& tet_metric)
+{
+    // assert stats_labels.size() == stats.size()
+    using json = nlohmann::json;
+    std::ofstream fout(filename.c_str(),std::ios::app);
+    //fout.open(filename.c_str(),std::ios::app);
+    json jOut;
+    for (size_t i = 0; i < tet_metric.size(); ++i) {
+        jOut[tet_metric_labels[i]] = tet_metric[i];
+    }
+    fout << jOut << std::endl;
+    fout.close();
+    return true;
+}
+
+bool save_json_mesh(const std::string& filename,
                   const std::array<std::string, 6>& tet_metric_labels,
                   const std::valarray<double>& tet_metric)
 {

@@ -1,0 +1,10 @@
+{
+	"gridResolution": 21,
+	"gridBbox": [[0, 0, 0], [1, 1, 1]],
+	"tetMeshFile": "../build/Release/mesh.json",
+	"funcFile":"../build/Release/function_value.json",
+	"outputDir":"./",
+	"useLookup":true,
+	"useSecondaryLookup":true,
+	"useTopoRayShooting":true
+}
