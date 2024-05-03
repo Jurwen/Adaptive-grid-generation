@@ -60,10 +60,16 @@ The complete set of output files include data files (tet_mesh.msh, active_tets.m
 
 We have an off-the-shelf algorithm that extracts the isosurfacs robustly from the grid for implicit complexes. First download and build [this isosurfacing method](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main) following its instructions
 
-After generating the grid using our method, please use the above isosurfacing tool by replace its `config_file` with `data/config.son` using its usage example: 
+After generating the grid using our method, please use the above isosurfacing tool by replacing its `config_file` with `data/config.son` according its usage example: 
 
 ```bash
 ./impl_arrangement [OPTIONS] config_file
 ```
 
  Currently, this isosurfacing tool only supports implicit arrangement and material interface. We're working on the support for the CSG as well.
+ 
+ ## Information Files
+ 
+timing.json: timing of different stages of our pipeline. Details can be found in the paper.
+
+stats.json: statistics of the background grid, e.g., the worst tetrahedral quality (radius ratio).
