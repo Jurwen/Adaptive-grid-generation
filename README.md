@@ -49,7 +49,8 @@ The following is an example of how to use the `isosurfacing` tool with all avail
 
 In this example, `cube6.msh` is the initial mesh file, `sphere.json` is the implicit function file, `0.01` is the threshold value, "IA" is the type of implicit complexes, `10000` is the maximum number of elements, and `0.05` is the shortest edge length.
 
-Examples from the paper
+Examples from the paper can be found in the `data` folder, where each example contains a mesh file and a function file. If the example is a CSG, then it also includes a CSG tree file. 
+
 ## Help
 
 You can always run `./isosurfacing -h` to display the help message which provides usage information and describes all the options available.
