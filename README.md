@@ -58,6 +58,12 @@ You can always run `./isosurfacing -h` to display the help message which provide
 
 The complete set of output files include data files (tet_mesh.msh, active_tets.msh, mesh.json, and function_value.json) and information files (timings.json and stats.json). The first two files can be viewed using [Gmsh](https://gmsh.info/) software showing the entire background grid or only the grid elements containing the surfaces. The last two files are for the later isosurfacing tool. 
 
-We have an off-the-shelf algorithm that extracts the isosurfacs robustly from the grid for implicit complexes. First download and build [this isosurfacing method](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main) following its instructions. 
+We have an off-the-shelf algorithm that extracts the isosurfacs robustly from the grid for implicit complexes. First download and build [this isosurfacing method](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main) following its instructions
 
-After generating the grid using our method, please use the above isosurfacing tool by replace its `config_file` with `data/config.son`. 
+After generating the grid using our method, please use the above isosurfacing tool by replace its `config_file` with `data/config.son` using its usage example: 
+
+```bash
+./impl_arrangement [OPTIONS] config_file
+```
+
+ Currently, this isosurfacing tool only supports implicit arrangement and material interface. We're working on the support for the CSG as well.
