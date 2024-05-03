@@ -57,7 +57,7 @@ You can always run `./isosurfacing -h` to display the help message which provide
 
 ## Output and After Grid Generation
 
-The complete set of output files include data files (tet_mesh.msh, active_tets.msh, mesh.json, and function_value.json) and information files (timings.json and stats.json). The first two files can be viewed using [Gmsh](https://gmsh.info/) software showing the entire background grid or only the grid elements containing the surfaces. The last two files are for the later isosurfacing tool. 
+The complete set of output files include data files (`tet_mesh.msh`, `active_tets.msh`, `mesh.json`, and `function_value.json`) and information files (`timings.json` and `stats.json`). The first two files can be viewed using [Gmsh](https://gmsh.info/) software showing the entire background grid or only the grid elements containing the surfaces. The last two files are for the later isosurfacing tool. 
 
 We have an off-the-shelf algorithm that extracts the isosurfacs robustly from the grid for implicit complexes. First download and build [this isosurfacing method](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main) following its instructions
 
