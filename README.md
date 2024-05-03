@@ -49,12 +49,15 @@ The following is an example of how to use the `isosurfacing` tool with all avail
 
 In this example, `cube6.msh` is the initial mesh file, `sphere.json` is the implicit function file, `0.01` is the threshold value, "IA" is the type of implicit complexes, `10000` is the maximum number of elements, and `0.05` is the shortest edge length.
 
+Examples from the paper
 ## Help
 
 You can always run `./isosurfacing -h` to display the help message which provides usage information and describes all the options available.
 
-## After Grid Generation
+## Output and After Grid Generation
+
+The complete set of output files include data files (tet_mesh.msh, active_tets.msh, mesh.json, and function_value.json) and information files (timings.json and stats.json). The first two files can be viewed using [Gmsh](https://gmsh.info/) software showing the entire background grid or only the grid elements containing the surfaces. The last two files are for the later isosurfacing tool. 
 
 We have an off-the-shelf algorithm that extracts the isosurfacs robustly from the grid for implicit complexes. First download and build [this isosurfacing method](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main) following its instructions. 
 
-After generating the grid using our method please replace the `data/config.son` as the configuration file used in the isosurfacing project.
+After generating the grid using our method, please use the above isosurfacing tool by replace its `config_file` with `data/config.son`. 
