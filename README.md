@@ -34,7 +34,7 @@ Examples of mesh files can be found in the `data/mesh` directory.
 - `-h, --help` : Show the help message and exit the program.
 - `-t, --threshold` : Set the threshold value for the isosurface generation. This is a `DOUBLE` value that defines the precision level of the isosurfacing.
 - `-o, --option` : Set the type of the implicit complexes from Implicit Arrangement(IA), Material Interface(MI), or Constructive Solid Geometry(CSG). This is a `STRING` value that takes input from "IA", "MI", and "CSG". The default type is "IA".
-- `--tree` : The path to the CSG tree file that defines the set of boolean operations on the function. 
+- `--tree` : The path to the CSG tree file that defines the set of boolean operations on the functions. Only required if the option is set to be "CSG".
 - `-c, --curve_network` : Set the switch of extracting only the Curve Network. Notice that Curve Network of all the above implicit complexes are different given the same set of input functions. This is a `BOOLEAN` type that takes in 1 or 0.
 - `-m, --max-elements` : Set the maximum number of elements in the mesh after refinement. This is an `INT` value that limits the size of the generated mesh. If this value is a **negative** number, the mesh will be refined until the threshold value is reached.
 - `-s,--shortest-edge` : Set the shortest length of edges in the mesh after refinement. This is a `DOUBLE` value that defines the shortest edge length.
@@ -55,4 +55,6 @@ You can always run `./isosurfacing -h` to display the help message which provide
 
 ## After Grid Generation
 
-We have an off-the-shelf algorithm that extracts the isosurfacs robustly from the grid for implicit complexes.  
+We have an off-the-shelf algorithm that extracts the isosurfacs robustly from the grid for implicit complexes. First download and build [this isosurfacing method](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main) following its instructions. 
+
+After generating the grid using our method please replace the `data/config.son` as the configuration file used in the isosurfacing project.
