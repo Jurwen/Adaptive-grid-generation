@@ -1,0 +1,23 @@
+[
+	{
+		"type":"Intersection",
+		"elements":[
+			2,
+			3
+		]
+	},
+    {
+        "type":"Negation",
+        "elements":[
+            -2,
+            0
+        ]
+    },
+    {
+        "type":"Negation",
+        "elements":[
+            -1,
+            0
+        ]
+    }
+]

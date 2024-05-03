@@ -1,0 +1,17 @@
+{
+	"input":[
+		{
+			"color": [
+                0.49411764705882355,
+                0.1607843137254902,
+                0.5294117647058824,
+                1.0
+            ],
+			"type":"rbf",
+			"points":"doghead_800_shifted.xyz",
+			"rbf_coeffs":"doghead_800_shifted_coeff",
+			"name":"1",
+			"samples":"1_sample.xyz"
+		}
+	]
+}

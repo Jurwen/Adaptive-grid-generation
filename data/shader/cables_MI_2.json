@@ -1,0 +1,52 @@
+[
+	{
+		"type":"shader",
+		"name": "cables/cable_1",
+		"delta": 1e-8
+	},
+	{
+		"type":"shader",
+		"name": "cables/cable_2",
+		"delta": 1e-8
+	},
+    {
+        "type":"shader",
+        "name": "cables/cable_3",
+        "delta": 1e-8
+    },
+    {
+        "type":"shader",
+        "name": "cables/cable_4",
+        "delta": 1e-8
+    },
+    {
+        "type":"shader",
+        "name": "cables/cable_5",
+        "delta": 1e-8
+    },
+    {
+        "type":"shader",
+        "name": "cables/cable_20",
+        "delta": 1e-8
+    },
+    {
+        "type":"shader",
+        "name": "cables/cable_21",
+        "delta": 1e-8
+    },
+    {
+        "type":"shader",
+        "name": "cables/cable_22",
+        "delta": 1e-8
+    },
+    {
+        "type":"shader",
+        "name": "cables/cable_23",
+        "delta": 1e-8
+    },
+    {
+        "type":"shader",
+        "name": "cables/cable_24",
+        "delta": 1e-8
+    }
+]

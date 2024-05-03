@@ -7,6 +7,7 @@
 
 #ifndef subdivide_multi_h
 #define subdivide_multi_h
+//#define Non_Robust_Test
 //#define No_Multi_Check
 //#define Only_ZeroX
 //#define Only_Geometry
@@ -322,6 +323,11 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                 }else{
                     rhs = numeric_limits<double>::infinity() * dot(gradList[funcIter], gradList[funcIter]);
                 }
+#ifdef Non_Robust_Test
+                std::cout << norm(gradList[funcIter])/std::abs(D) << std::endl;
+                lhs = errorList[funcIter] / (norm(gradList[funcIter])/std::abs(D));
+                rhs = threshold;
+#endif
                 if (lhs > rhs) {
                     single2_timer.Stop();
                     return score;
@@ -466,10 +472,29 @@ bool subTet(std::array<std::array<double, 3>,4> &pts,
                     if (maxGammaSq < currError)
                         maxGammaSq = currError;
                 }
+#ifdef Non_Robust_Test
+                maxGammaSq = 0;
+                for (int i = 0; i < 16; i++){
+                    //std::cout << diffList[pair[pairIter][0]][i] << " " << diffList[pair[pairIter][1]][i] << std::endl;
+                    llvm_vecsmall::SmallVector<double, 20> unNormDis = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{diffList[pair[pairIter][0]][i], diffList[pair[pairIter][1]][i]}}), llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>(H))[0];
+                    double currError = sqD * dot(unNormDis, unNormDis);
+                    if (maxGammaSq < currError){
+                        maxGammaSq = currError;}
+                    unNormDis = matrixMultiply(llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>({{-diffList[pair[pairIter][0]][i], diffList[pair[pairIter][1]][i]}}), llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20>(H))[0];
+                    currError = sqD * dot(unNormDis, unNormDis);
+                    if (maxGammaSq < currError){
+                        maxGammaSq = currError;}
+                }
+                if (maxGammaSq/(E*E) > threshold*threshold){
+                    timer.Stop();
+                    return score;
+                }
+#else
                 if (maxGammaSq > threshold*threshold * E*E){
                     timer.Stop();
                     return score;
                 }
+#endif
             }
         }
         timer.Stop();

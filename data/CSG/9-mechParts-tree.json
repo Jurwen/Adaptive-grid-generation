@@ -1,0 +1,86 @@
+[
+    {
+        "type": "Intersection",
+        "elements": [
+            2,
+            8
+        ]
+    },
+    {
+        "type": "Union",
+        "elements": [
+            3,
+            12
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -1,
+            4
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -2,
+            5
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -3,
+            6
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -4,
+            7
+        ]
+    },
+    {
+        "type": "Intersection",
+        "elements": [
+            -5,
+            -6
+        ]
+    },
+    {
+        "type": "Negation",
+        "elements": [
+            9,
+            0
+        ]
+    },
+    {
+        "type": "Union",
+        "elements": [
+            10,
+            11
+        ]
+    },
+    {
+        "type": "Negation",
+        "elements": [
+            -7,
+            0
+        ]
+    },
+    {
+        "type": "Negation",
+        "elements": [
+            -8,
+            0
+        ]
+    },
+    {
+        "type": "Negation",
+        "elements": [
+            -9,
+            0
+        ]
+    }
+]

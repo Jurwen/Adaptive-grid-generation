@@ -1,0 +1,7 @@
+[
+	{
+		"type":"shader",
+		"name": "single_key",
+		"delta": 5e-8
+	}
+]

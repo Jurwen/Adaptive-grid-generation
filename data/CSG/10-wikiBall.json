@@ -1,0 +1,135 @@
+[
+    {
+        "type": "plane",
+        "point": [
+            0,
+            0.8125,
+            0
+        ],
+        "normal": [
+            0,
+            1,
+            0
+        ]
+    },
+    {
+        "type": "plane",
+        "point": [
+            0,
+            0.2125,
+            0
+        ],
+        "normal": [
+            0,
+            -1,
+            0
+        ]
+    },
+    {
+        "type": "plane",
+        "point": [
+            0.8125,
+            0,
+            0
+        ],
+        "normal": [
+            1,
+            0,
+            0
+        ]
+    },
+    {
+        "type": "plane",
+        "point": [
+            0.2125,
+            0,
+            0
+        ],
+        "normal": [
+            -1,
+            0,
+            0
+        ]
+    },
+    {
+        "type": "plane",
+        "point": [
+            0,
+            0,
+            0.8125
+        ],
+        "normal": [
+            0,
+            0,
+            1
+        ]
+    },
+    {
+        "type": "plane",
+        "point": [
+            0,
+            0,
+            0.2125
+        ],
+        "normal": [
+            0,
+            0,
+            -1
+        ]
+    },
+    {
+        "type": "cylinder",
+        "axis_point": [
+            0.5125,
+            0.5125,
+            0
+        ],
+        "axis_vector": [
+            0,
+            0,
+            1
+        ],
+        "radius": 0.2,
+        "squared": true
+    },
+    {
+        "type": "cylinder",
+        "axis_point": [
+            0.5125,
+            0,
+            0.5125
+        ],
+        "axis_vector": [
+            0,
+            1,
+            0
+        ],
+        "radius": 0.2,
+        "squared": true
+    },
+    {
+        "type": "cylinder",
+        "axis_point": [
+            0,
+            0.5125,
+            0.5125
+        ],
+        "axis_vector": [
+            1,
+            0,
+            0
+        ],
+        "radius": 0.2,
+        "squared": true
+    },
+    {
+        "type": "sphere",
+        "center": [
+            0.5125,
+            0.5125,
+            0.5125
+        ],
+        "radius": 0.4,
+        "squared": true
+    }
+]

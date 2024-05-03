@@ -1,3 +1,4 @@
+//#define Check_Flip_Tets
 #include <mtet/mtet.h>
 #include <mtet/io.h>
 #include <ankerl/unordered_dense.h>
@@ -288,6 +289,7 @@ int main(int argc, const char *argv[])
                 continue;
             }
             Q.pop_back();
+            std::array<VertexId, 2> vs_old = mesh.get_edge_vertices(eid);
             Timer split_timer(splitting, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             auto [vid, eid0, eid1] = mesh.split_edge(eid);
             split_timer.Stop();
@@ -305,14 +307,174 @@ int main(int argc, const char *argv[])
                 if (push_longest_edge(tid)) {
                     std::push_heap(Q.begin(), Q.end(), comp);
                 } });
+#ifdef Check_Flip_Tets
+            std::array<VertexId, 2> vs_new = mesh.get_edge_vertices(eid0);
+            mesh.foreach_tet_around_edge(eid0, [&](mtet::TetId tid)
+                                         {
+                std::span<VertexId, 4> vs = mesh.get_tet(tid);
+                std::vector<VertexId> parent(4);
+                parent[0] = vs_old[0]; parent[1] = vs_old[1];
+                int parentIndex = 2;
+                for (auto vIter : vs){
+                    if (vIter !=  vs_new[0] && vIter != vs_new[1]){
+                        parent[parentIndex] = vIter;
+                        parentIndex ++;
+                    }
+                }
+                std::span<VertexId, 4> spanVec(parent);
+                if (!vertex_active_map[vertexHash(spanVec)] && vertex_active_map[vertexHash(vs)]){
+                    {
+                        using json = nlohmann::json;
+                        std::string filePath = "flip_tets.json";
+//                        if (std::filesystem::exists(filePath)) {
+//                            std::filesystem::remove(filePath);
+//                        }
+                        std::ofstream fout(filePath,std::ios::app);
+                        json jOut;
+                        std::array<std::array<double, 3>, 4> pts;
+                        llvm_vecsmall::SmallVector<std::array<double, 4>, 20> vals(funcNum);
+                        llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> grads(funcNum);
+                        for (size_t i = 0; i < 4; ++i) {
+                            auto coords = mesh.get_vertex(vs[i]);
+                            pts[i][0] = coords[0];
+                            pts[i][1] = coords[1];
+                            pts[i][2] = coords[2];
+                            auto func_gradList = vertex_func_grad_map[value_of(vs[i])];
+                            for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
+                                vals[funcIter][i] = func_gradList[funcIter][0];
+                                grads[funcIter][i][0] = func_gradList[funcIter][1];
+                                grads[funcIter][i][1] = func_gradList[funcIter][2];
+                                grads[funcIter][i][2] = func_gradList[funcIter][3];
+                            }
+                        }
+                        jOut["vertices: "] = pts;
+                        jOut["value: "] = vals;
+                        jOut["gradient: "] = grads;
+                        //
+                        fout << jOut << std::endl;
+                        fout.close();
+                    }
+                    {
+                        using json = nlohmann::json;
+                        std::string filePath = "flip_tets_parent.json";
+//                        if (std::filesystem::exists(filePath)) {
+//                            std::filesystem::remove(filePath);
+//                        }
+                        std::ofstream fout(filePath,std::ios::app);
+                        json jOut;
+                        std::array<std::array<double, 3>, 4> pts;
+                        llvm_vecsmall::SmallVector<std::array<double, 4>, 20> vals(funcNum);
+                        llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> grads(funcNum);
+                        for (size_t i = 0; i < 4; ++i) {
+                            auto coords = mesh.get_vertex(spanVec[i]);
+                            pts[i][0] = coords[0];
+                            pts[i][1] = coords[1];
+                            pts[i][2] = coords[2];
+                            auto func_gradList = vertex_func_grad_map[value_of(spanVec[i])];
+                            for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
+                                vals[funcIter][i] = func_gradList[funcIter][0];
+                                grads[funcIter][i][0] = func_gradList[funcIter][1];
+                                grads[funcIter][i][1] = func_gradList[funcIter][2];
+                                grads[funcIter][i][2] = func_gradList[funcIter][3];
+                            }
+                        }
+                        jOut["vertices: "] = pts;
+                        jOut["value: "] = vals;
+                        jOut["gradient: "] = grads;
+                        //
+                        fout << jOut << std::endl;
+                        fout.close();
+                    }
+                }
+            });
+            vs_new = mesh.get_edge_vertices(eid1);
+            mesh.foreach_tet_around_edge(eid1, [&](mtet::TetId tid)
+                                         {
+                std::span<VertexId, 4> vs = mesh.get_tet(tid);
+                std::vector<VertexId> parent(4);
+                parent[0] = vs_old[0]; parent[1] = vs_old[1];
+                int parentIndex = 2;
+                for (auto vIter : vs){
+                    if (vIter !=  vs_new[0] && vIter != vs_new[1]){
+                        parent[parentIndex] = vIter;
+                        parentIndex ++;
+                    }
+                }
+                std::span<VertexId, 4> spanVec(parent);
+                if (!vertex_active_map[vertexHash(spanVec)] && vertex_active_map[vertexHash(vs)]){
+                    {
+                        using json = nlohmann::json;
+                        std::string filePath = "flip_tets.json";
+//                        if (std::filesystem::exists(filePath)) {
+//                            std::filesystem::remove(filePath);
+//                        }
+                        std::ofstream fout(filePath,std::ios::app);
+                        json jOut;
+                        std::array<std::array<double, 3>, 4> pts;
+                        llvm_vecsmall::SmallVector<std::array<double, 4>, 20> vals(funcNum);
+                        llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> grads(funcNum);
+                        for (size_t i = 0; i < 4; ++i) {
+                            auto coords = mesh.get_vertex(vs[i]);
+                            pts[i][0] = coords[0];
+                            pts[i][1] = coords[1];
+                            pts[i][2] = coords[2];
+                            auto func_gradList = vertex_func_grad_map[value_of(vs[i])];
+                            for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
+                                vals[funcIter][i] = func_gradList[funcIter][0];
+                                grads[funcIter][i][0] = func_gradList[funcIter][1];
+                                grads[funcIter][i][1] = func_gradList[funcIter][2];
+                                grads[funcIter][i][2] = func_gradList[funcIter][3];
+                            }
+                        }
+                        jOut["vertices: "] = pts;
+                        jOut["value: "] = vals;
+                        jOut["gradient: "] = grads;
+                        //
+                        fout << jOut << std::endl;
+                        fout.close();
+                    }
+                    {
+                        using json = nlohmann::json;
+                        std::string filePath = "flip_tets_parent.json";
+//                        if (std::filesystem::exists(filePath)) {
+//                            std::filesystem::remove(filePath);
+//                        }
+                        std::ofstream fout(filePath,std::ios::app);
+                        json jOut;
+                        std::array<std::array<double, 3>, 4> pts;
+                        llvm_vecsmall::SmallVector<std::array<double, 4>, 20> vals(funcNum);
+                        llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> grads(funcNum);
+                        for (size_t i = 0; i < 4; ++i) {
+                            auto coords = mesh.get_vertex(spanVec[i]);
+                            pts[i][0] = coords[0];
+                            pts[i][1] = coords[1];
+                            pts[i][2] = coords[2];
+                            auto func_gradList = vertex_func_grad_map[value_of(spanVec[i])];
+                            for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
+                                vals[funcIter][i] = func_gradList[funcIter][0];
+                                grads[funcIter][i][0] = func_gradList[funcIter][1];
+                                grads[funcIter][i][1] = func_gradList[funcIter][2];
+                                grads[funcIter][i][2] = func_gradList[funcIter][3];
+                            }
+                        }
+                        jOut["vertices: "] = pts;
+                        jOut["value: "] = vals;
+                        jOut["gradient: "] = grads;
+                        //
+                        fout << jOut << std::endl;
+                        fout.close();
+                    }
+                }
+            });
+#endif
         }
         timer.Stop();
     }
     //profiled time(see details in time.h) and profiled number of calls to zero
-//    for (int i = 0; i < profileTimer.size(); i++){
-//        timeProfileName time_type = static_cast<timeProfileName>(i);
-//        std::cout << time_type << ": " << profileTimer[i] << std::endl;
-//    }
+    for (int i = 0; i < profileTimer.size(); i++){
+        timeProfileName time_type = static_cast<timeProfileName>(i);
+        std::cout << time_type << ": " << profileTimer[i] << std::endl;
+    }
     std::cout << profileTimer[0] << " "<< profileTimer[1] << " "<< profileTimer[2] << " "<< profileTimer[3] << " "<< profileTimer[4] << " "<< profileTimer[5] << " "<< profileTimer[6] << " "<< profileTimer[7] << " "<< profileTimer[8] << " "<< profileTimer[9] << " "<< sub_call_two << " "<< sub_call_three << std::endl;
     //std::cout << "sub two func calls: " << sub_call_two << std::endl;
     //std::cout << "sub three func calls: " << sub_call_three << std::endl;
