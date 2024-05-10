@@ -1,0 +1,25 @@
+[
+    {
+        "type":"cylinder",
+        "axis_point":[
+            0.49,
+            0.51,
+            0.51
+        ],
+        "axis_vector":[
+            0,
+            0,
+            1
+        ],
+        "radius":0.25
+    },
+	{
+		"type":"sphere",
+		"center":[
+            0.6165,
+			0.51,
+			0.51
+		],
+		"radius":0.375
+	}
+]

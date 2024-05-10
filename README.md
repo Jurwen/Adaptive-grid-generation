@@ -14,6 +14,9 @@ make
 ```
 The program `isosurfacing` will be generated in the build file. 
 
+### Dependency
+
+Currently, all the packages depencies are available except for `mtet` and `implicit_shader`. These are currently in a release process and will be available shortly.
 
 ## Usage
 
@@ -49,7 +52,7 @@ The following is an example of how to use the `isosurfacing` tool with all avail
 
 In this example, `cube6.msh` is the initial mesh file, `sphere.json` is the implicit function file, `0.01` is the threshold value, "IA" is the type of implicit complexes, `10000` is the maximum number of elements, and `0.05` is the shortest edge length.
 
-Examples from the paper can be found in the `data` folder, where each example contains a mesh file and a function file. If the example is a CSG, then it also includes a CSG tree file. 
+Examples from the paper can be found in the `data` folder, where each example contains a mesh file and a function file. If the example is a CSG, then it also includes a CSG tree file. Each figure folder also contains a `figure.sh` and a `figure.bat` file containing the exact commandline to produce the examples from the paper.
 
 ## Help
 

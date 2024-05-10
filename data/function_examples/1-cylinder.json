@@ -1,0 +1,17 @@
+[
+    {
+        "type": "cylinder",
+        "axis_point": [
+            0.5241,
+            0.5321,
+            0.4214
+        ],
+        "axis_vector": [
+            0,
+            0,
+            1
+        ],
+        "radius": 0.2,
+        "squared": false
+    }
+]
