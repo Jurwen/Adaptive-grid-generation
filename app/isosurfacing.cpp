@@ -17,7 +17,72 @@
 
 using namespace mtet;
 
-const bool GLOBAL_ANALYSIS_MODE = false;
+bool save_mesh_json(const std::string& filename,
+                    const mtet::MTetMesh mesh)
+{
+    vector<array<double, 3>> vertices((int)mesh.get_num_vertices());
+    vector<array<size_t, 4>> tets((int)mesh.get_num_tets());
+    using IndexMap = ankerl::unordered_dense::map<uint64_t, size_t>;
+    IndexMap vertex_tag_map;
+    vertex_tag_map.reserve(mesh.get_num_vertices());
+    int counter = 0;
+    mesh.seq_foreach_vertex([&](VertexId vid, std::span<const Scalar, 3> data){
+        size_t vertex_tag = vertex_tag_map.size() + 1;
+        vertex_tag_map[value_of(vid)] = vertex_tag;
+        vertices[counter] = {data[0], data[1], data[2]};
+        counter ++;
+    });
+    counter = 0;
+    mesh.seq_foreach_tet([&](TetId, std::span<const VertexId, 4> data) {
+        tets[counter] = {vertex_tag_map[value_of(data[0])] - 1, vertex_tag_map[value_of(data[1])] - 1, vertex_tag_map[value_of(data[2])] - 1, vertex_tag_map[value_of(data[3])] - 1};
+        counter ++;
+    });
+    if (std::filesystem::exists(filename.c_str())){
+        std::filesystem::remove(filename.c_str());
+    }
+    using json = nlohmann::json;
+    std::ofstream fout(filename.c_str(),std::ios::app);
+    json jOut;
+    jOut.push_back(json(vertices));
+    jOut.push_back(json(tets));
+    fout << jOut.dump(4, ' ', true, json::error_handler_t::replace) << std::endl;
+    fout.close();
+    return true;
+}
+
+bool save_function_json(const std::string& filename,
+                        const mtet::MTetMesh mesh,
+                        ankerl::unordered_dense::map<uint64_t, llvm_vecsmall::SmallVector<std::array<double, 4>, 20>> vertex_func_grad_map,
+                        const size_t funcNum)
+{
+    vector<vector<double>> values(funcNum);
+    for (size_t funcIter = 0; funcIter <  funcNum; funcIter++){
+        values[funcIter].reserve(((int)mesh.get_num_vertices()));
+    }
+    mesh.seq_foreach_vertex([&](VertexId vid, std::span<const Scalar, 3> data){
+        llvm_vecsmall::SmallVector<std::array<double, 4>, 20> func_gradList(funcNum);
+        func_gradList = vertex_func_grad_map[value_of(vid)];
+        for (size_t funcIter = 0; funcIter < funcNum; funcIter++){
+            cout << data[0] << " " << data[1] << " " << data[2] << ": " << func_gradList[funcIter][0] << ", " << func_gradList[funcIter][1] << ", " << func_gradList[funcIter][2] << ", " << func_gradList[funcIter][3] << endl;
+            values[funcIter].push_back(func_gradList[funcIter][0]);
+        }
+    });
+    if (std::filesystem::exists(filename.c_str())){
+        std::filesystem::remove(filename.c_str());
+    }
+    using json = nlohmann::json;
+    std::ofstream fout(filename.c_str(),std::ios::app);
+    json jOut;
+    for (size_t funcIter = 0; funcIter <  funcNum; funcIter++){
+        json jFunc;
+        jFunc["type"] = "customized";
+        jFunc["value"] = values[funcIter];
+        jOut.push_back(jFunc);
+    }
+    fout << jOut.dump(4, ' ', true, json::error_handler_t::replace) << std::endl;
+    fout.close();
+    return true;
+}
 //hash for mounting a boolean that represents the activeness to a tet
 //since the tetid isn't const during the process, mount the boolean using vertexids of 4 corners.
 uint64_t vertexHash(std::span<VertexId, 4>& x)
@@ -35,6 +100,7 @@ int main(int argc, const char *argv[])
         double threshold = 0.0001;
         double alpha = std::numeric_limits<double>::infinity();
         int max_elements = -1;
+        double smallest_edge_length = 0;
         string method = "IA";
         string csg_file;
         bool bfs = false;
@@ -50,6 +116,7 @@ int main(int argc, const char *argv[])
     app.add_option("-o,--option", args.method, "Options of implicit manifold");
     app.add_option("--tree", args.csg_file, "CSG Tree file");
     app.add_option("-m,--max-elements", args.max_elements, "Maximum number of elements");
+    app.add_option("-s,--shortest-edge", args.smallest_edge_length, "Shortest edge length");
     app.add_option("-b, --bfs", args.bfs, "Toggle BFS Mode");
     app.add_option("-d, --dfs", args.dfs, "Toggle DFS Mode");
     app.add_option("-c, --curve_network", args.curve_network, "Generate Curve Network only");
@@ -63,7 +130,7 @@ int main(int argc, const char *argv[])
     } else {
         mesh = mtet::load_mesh(args.mesh_file);
     }
-
+    
     // Read implicit function
     vector<unique_ptr<ImplicitFunction<double>>> functions;
     load_functions(args.function_file, functions);
@@ -75,6 +142,7 @@ int main(int argc, const char *argv[])
     }
     double threshold = args.threshold;
     double alpha = args.alpha;
+    double smallest_edge_length = args.smallest_edge_length;
     if (args.method == "IA"){
         GLOBAL_METHOD = IA;
     }
@@ -126,9 +194,9 @@ int main(int argc, const char *argv[])
             multiple_indices[funcIter] = {pair, triple};
         }
     }
-    int largeNumber;
+    int search_counter;
     if (args.bfs || args.dfs){
-        largeNumber = 0;
+        search_counter = 0;
     }
     // initialize vertex map: vertex index -> {{f_i, gx, gy, gz} | for all f_i in the function}
     using IndexMap = ankerl::unordered_dense::map<uint64_t, llvm_vecsmall::SmallVector<std::array<double, 4>, 20>>;
@@ -223,11 +291,11 @@ int main(int argc, const char *argv[])
                     longest_edge = eid;
                 } });
             if (args.bfs){
-                Q.emplace_back(largeNumber, longest_edge);
-                largeNumber--;
+                Q.emplace_back(search_counter, longest_edge);
+                search_counter--;
             }else if(args.dfs){
-                Q.emplace_back(largeNumber, longest_edge);
-                largeNumber++;
+                Q.emplace_back(search_counter, longest_edge);
+                search_counter++;
             }
             else{
                 Q.emplace_back(longest_edge_length, longest_edge);
@@ -326,9 +394,9 @@ int main(int argc, const char *argv[])
                     {
                         using json = nlohmann::json;
                         std::string filePath = "flip_tets.json";
-//                        if (std::filesystem::exists(filePath)) {
-//                            std::filesystem::remove(filePath);
-//                        }
+                        //                        if (std::filesystem::exists(filePath)) {
+                        //                            std::filesystem::remove(filePath);
+                        //                        }
                         std::ofstream fout(filePath,std::ios::app);
                         json jOut;
                         std::array<std::array<double, 3>, 4> pts;
@@ -357,9 +425,9 @@ int main(int argc, const char *argv[])
                     {
                         using json = nlohmann::json;
                         std::string filePath = "flip_tets_parent.json";
-//                        if (std::filesystem::exists(filePath)) {
-//                            std::filesystem::remove(filePath);
-//                        }
+                        //                        if (std::filesystem::exists(filePath)) {
+                        //                            std::filesystem::remove(filePath);
+                        //                        }
                         std::ofstream fout(filePath,std::ios::app);
                         json jOut;
                         std::array<std::array<double, 3>, 4> pts;
@@ -405,9 +473,9 @@ int main(int argc, const char *argv[])
                     {
                         using json = nlohmann::json;
                         std::string filePath = "flip_tets.json";
-//                        if (std::filesystem::exists(filePath)) {
-//                            std::filesystem::remove(filePath);
-//                        }
+                        //                        if (std::filesystem::exists(filePath)) {
+                        //                            std::filesystem::remove(filePath);
+                        //                        }
                         std::ofstream fout(filePath,std::ios::app);
                         json jOut;
                         std::array<std::array<double, 3>, 4> pts;
@@ -436,9 +504,9 @@ int main(int argc, const char *argv[])
                     {
                         using json = nlohmann::json;
                         std::string filePath = "flip_tets_parent.json";
-//                        if (std::filesystem::exists(filePath)) {
-//                            std::filesystem::remove(filePath);
-//                        }
+                        //                        if (std::filesystem::exists(filePath)) {
+                        //                            std::filesystem::remove(filePath);
+                        //                        }
                         std::ofstream fout(filePath,std::ios::app);
                         json jOut;
                         std::array<std::array<double, 3>, 4> pts;
@@ -473,9 +541,9 @@ int main(int argc, const char *argv[])
     //profiled time(see details in time.h) and profiled number of calls to zero
     for (int i = 0; i < profileTimer.size(); i++){
         timeProfileName time_type = static_cast<timeProfileName>(i);
-        std::cout << time_type << ": " << profileTimer[i] << std::endl;
+        std::cout << time_label[i] << ": " << profileTimer[i] << std::endl;
     }
-    std::cout << profileTimer[0] << " "<< profileTimer[1] << " "<< profileTimer[2] << " "<< profileTimer[3] << " "<< profileTimer[4] << " "<< profileTimer[5] << " "<< profileTimer[6] << " "<< profileTimer[7] << " "<< profileTimer[8] << " "<< profileTimer[9] << " "<< sub_call_two << " "<< sub_call_three << std::endl;
+    //    std::cout << profileTimer[0] << " "<< profileTimer[1] << " "<< profileTimer[2] << " "<< profileTimer[3] << " "<< profileTimer[4] << " "<< profileTimer[5] << " "<< profileTimer[6] << " "<< profileTimer[7] << " "<< profileTimer[8] << " "<< profileTimer[9] << " "<< sub_call_two << " "<< sub_call_three << std::endl;
     //std::cout << "sub two func calls: " << sub_call_two << std::endl;
     //std::cout << "sub three func calls: " << sub_call_three << std::endl;
     double min_rratio_all = 1;
@@ -513,13 +581,12 @@ int main(int argc, const char *argv[])
     save_timings("timings.json",time_label, profileTimer);
     // save statistics
     save_metrics("stats.json", tet_metric_labels, {(double)mesh.get_num_tets(), activeTet, min_rratio_all, min_rratio_active, (double)sub_call_two, (double) sub_call_three});
+    // save the mesh output for isosurfacing tool
+    save_mesh_json("mesh.json", mesh);
+    // save the mesh output for isosurfacing tool
+    save_function_json("function_value.json", mesh, vertex_func_grad_map, funcNum);
     //write mesh and active tets
-    if(args.dfs == 1){
-        mtet::save_mesh("tet_mesh_dfs.msh", mesh);
-        mtet::save_mesh("active_tets_dfs.msh", mesh, std::span<mtet::TetId>(activeTetId));
-    }else{
-        mtet::save_mesh("tet_mesh.msh", mesh);
-        mtet::save_mesh("active_tets.msh", mesh, std::span<mtet::TetId>(activeTetId));
-    }
+    mtet::save_mesh("tet_mesh.msh", mesh);
+    mtet::save_mesh("active_tets.msh", mesh, std::span<mtet::TetId>(activeTetId));
     return 0;
 }
