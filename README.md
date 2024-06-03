@@ -47,7 +47,7 @@ Examples of mesh files can be found in the `data/mesh` directory.
 The following is an example of how to use the `isosurfacing` tool with all available options:
 
 ```bash
-./isosurfacing data/mesh/cube6.msh data/function/sphere.json -t 0.01 -o "IA" -m 10000 -s 0.05
+./isosurfacing ../data/mesh/cube6.msh ../data/function_examples/1-sphere.json -t 0.01 -o "IA" -m 10000 -s 0.05
 ```
 
 In this example, `cube6.msh` is the initial mesh file, `sphere.json` is the implicit function file, `0.01` is the threshold value, "IA" is the type of implicit complexes, `10000` is the maximum number of elements, and `0.05` is the shortest edge length.
