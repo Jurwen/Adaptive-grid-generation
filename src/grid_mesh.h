@@ -1,9 +1,7 @@
 //
 // Created by Charles Du on 1/15/24.
 //
-
-#ifndef ADAPTIVE_MESH_REFINEMENT_GRID_MESH_H
-#define ADAPTIVE_MESH_REFINEMENT_GRID_MESH_H
+#pragma once
 
 #include <vector>
 #include <string>
@@ -184,5 +182,4 @@ namespace grid_mesh {
 
 } // namespace grid_mesh
 
-#endif //ADAPTIVE_MESH_REFINEMENT_GRID_MESH_H
 

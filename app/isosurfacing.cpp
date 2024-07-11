@@ -6,13 +6,16 @@
 #include <queue>
 #include <optional>
 #include <SmallVector.h>
-
 #include <implicit_functions.h>
-#include <subdivide_multi.h>
 #include <CLI/CLI.hpp>
-#include <tet_quality.h>
-#include <timer.h>
-#include <grid_mesh.h>
+
+#include "subdivide_multi.h"
+#include "tet_quality.h"
+#include "timer.h"
+#include "grid_mesh.h"
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <Eigen/Sparse>
 
 
 using namespace mtet;
@@ -20,8 +23,8 @@ using namespace mtet;
 bool save_mesh_json(const std::string& filename,
                     const mtet::MTetMesh mesh)
 {
-    vector<array<double, 3>> vertices((int)mesh.get_num_vertices());
-    vector<array<size_t, 4>> tets((int)mesh.get_num_tets());
+    std::vector<std::array<double, 3>> vertices((int)mesh.get_num_vertices());
+    std::vector<std::array<size_t, 4>> tets((int)mesh.get_num_tets());
     using IndexMap = ankerl::unordered_dense::map<uint64_t, size_t>;
     IndexMap vertex_tag_map;
     vertex_tag_map.reserve(mesh.get_num_vertices());
@@ -55,7 +58,7 @@ bool save_function_json(const std::string& filename,
                         ankerl::unordered_dense::map<uint64_t, llvm_vecsmall::SmallVector<std::array<double, 4>, 20>> vertex_func_grad_map,
                         const size_t funcNum)
 {
-    vector<vector<double>> values(funcNum);
+    std::vector<std::vector<double>> values(funcNum);
     for (size_t funcIter = 0; funcIter <  funcNum; funcIter++){
         values[funcIter].reserve(((int)mesh.get_num_vertices()));
     }
@@ -63,7 +66,6 @@ bool save_function_json(const std::string& filename,
         llvm_vecsmall::SmallVector<std::array<double, 4>, 20> func_gradList(funcNum);
         func_gradList = vertex_func_grad_map[value_of(vid)];
         for (size_t funcIter = 0; funcIter < funcNum; funcIter++){
-            cout << data[0] << " " << data[1] << " " << data[2] << ": " << func_gradList[funcIter][0] << ", " << func_gradList[funcIter][1] << ", " << func_gradList[funcIter][2] << ", " << func_gradList[funcIter][3] << endl;
             values[funcIter].push_back(func_gradList[funcIter][0]);
         }
     });
@@ -95,14 +97,14 @@ int main(int argc, const char *argv[])
 {
     struct
     {
-        string mesh_file;
-        string function_file;
+        std::string mesh_file;
+        std::string function_file;
         double threshold = 0.0001;
         double alpha = std::numeric_limits<double>::infinity();
         int max_elements = -1;
         double smallest_edge_length = 0;
-        string method = "IA";
-        string csg_file;
+        std::string method = "IA";
+        std::string csg_file;
         bool bfs = false;
         bool dfs = false;
         bool curve_network = false;
@@ -132,13 +134,18 @@ int main(int argc, const char *argv[])
     }
     
     // Read implicit function
-    vector<unique_ptr<ImplicitFunction<double>>> functions;
+    std::vector<std::unique_ptr<ImplicitFunction<double>>> functions;
     load_functions(args.function_file, functions);
-    size_t funcNum = functions.size();
+    funcNum = functions.size();
+    valList.reserve(funcNum);
+    diffList.reserve(funcNum);
+    activeTF.reserve(funcNum);
+    funcInt.reserve(funcNum);
+    gradList.reserve(funcNum);
     // Read options
     if (args.max_elements < 0)
     {
-        args.max_elements = numeric_limits<int>::max();
+        args.max_elements = std::numeric_limits<int>::max();
     }
     double threshold = args.threshold;
     double alpha = args.alpha;
@@ -164,9 +171,9 @@ int main(int argc, const char *argv[])
         int activeNum = funcIter + 1;
         int pairNum = activeNum * (activeNum-1)/2, triNum = activeNum * (activeNum-1) * (activeNum - 2)/ 6;
         int quadNum = activeNum * (activeNum - 1) * (activeNum - 2) * (activeNum - 3)/ 24;
-        llvm_vecsmall::SmallVector<array<int, 4>,100> pair(pairNum);
-        llvm_vecsmall::SmallVector<array<int, 4>, 100> triple(triNum);
-        llvm_vecsmall::SmallVector<array<int, 4>, 100> quad(quadNum);
+        llvm_vecsmall::SmallVector<std::array<int, 4>,100> pair(pairNum);
+        llvm_vecsmall::SmallVector<std::array<int, 4>, 100> triple(triNum);
+        llvm_vecsmall::SmallVector<std::array<int, 4>, 100> quad(quadNum);
         int pairIt = 0, triIt = 0, quadIt = 0;
         for (int i = 0; i < activeNum - 1; i++){
             for (int j = i + 1; j < activeNum; j++){
@@ -198,6 +205,7 @@ int main(int argc, const char *argv[])
     if (args.bfs || args.dfs){
         search_counter = 0;
     }
+    //matrix_init(coeff_matrix);
     // initialize vertex map: vertex index -> {{f_i, gx, gy, gz} | for all f_i in the function}
     using IndexMap = ankerl::unordered_dense::map<uint64_t, llvm_vecsmall::SmallVector<std::array<double, 4>, 20>>;
     IndexMap vertex_func_grad_map;
@@ -213,7 +221,7 @@ int main(int argc, const char *argv[])
         llvm_vecsmall::SmallVector<std::array<double, 4>, 20> func_gradList(funcNum);
         for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
             auto &func = functions[funcIter];
-            array<double, 4> func_grad;
+            std::array<double, 4> func_grad;
             func_grad[0] = func->evaluate_gradient(data[0], data[1], data[2], func_grad[1], func_grad[2], func_grad[3]);
             func_gradList[funcIter] = func_grad;
         }
@@ -231,7 +239,7 @@ int main(int argc, const char *argv[])
     {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
         {
-            Timer eval_timer(evaluation, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+            //Timer eval_timer(evaluation, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             for (int i = 0; i < 4; ++i)
             {
                 auto vid = vs[i];
@@ -244,7 +252,7 @@ int main(int argc, const char *argv[])
                 if (!vertex_func_grad_map.contains(value_of(vid))) {
                     for(size_t funcIter = 0; funcIter < funcNum; funcIter++){
                         auto &func = functions[funcIter];
-                        array<double, 4> func_grad;
+                        std::array<double, 4> func_grad;
                         func_grad[0] = func->evaluate_gradient(coords[0], coords[1], coords[2], func_grad[1], func_grad[2],
                                                                func_grad[3]);
                         func_gradList[funcIter] = func_grad;
@@ -261,21 +269,21 @@ int main(int argc, const char *argv[])
                     grads[funcIter][i][2] = func_gradList[funcIter][3];
                 }
             }
-            eval_timer.Stop();
+            //eval_timer.Stop();
         }
         bool isActive = 0;
         bool subResult;
         {
-            Timer sub_timer(subdivision, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+            //Timer sub_timer(subdivision, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             if (GLOBAL_METHOD != MI){
                 subResult = subTet(pts, vals, grads, threshold, isActive);
             }else{
                 subResult = subMI(pts, vals, grads, threshold, isActive);
             }
-            sub_timer.Stop();
+            //sub_timer.Stop();
         }
         vertex_active_map[vertexHash(vs)] = isActive;
-        Timer eval_timer(evaluation, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+        //Timer eval_timer(evaluation, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
         if (subResult)
         {
             mtet::EdgeId longest_edge;
@@ -300,10 +308,10 @@ int main(int argc, const char *argv[])
             else{
                 Q.emplace_back(longest_edge_length, longest_edge);
             }
-            eval_timer.Stop();
+            //eval_timer.Stop();
             return true;
         }
-        eval_timer.Stop();
+        //eval_timer.Stop();
         return false;
     };
     
@@ -358,9 +366,9 @@ int main(int argc, const char *argv[])
             }
             Q.pop_back();
             std::array<VertexId, 2> vs_old = mesh.get_edge_vertices(eid);
-            Timer split_timer(splitting, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
+            //Timer split_timer(splitting, [&](auto profileResult){profileTimer = combine_timer(profileTimer, profileResult);});
             auto [vid, eid0, eid1] = mesh.split_edge(eid);
-            split_timer.Stop();
+            //split_timer.Stop();
             //std::cout << "Number of elements: " << mesh.get_num_tets() << std::endl;
             if (mesh.get_num_tets() > args.max_elements) {
                 break;
@@ -551,7 +559,7 @@ int main(int argc, const char *argv[])
     std::vector<mtet::TetId> activeTetId;
     mesh.seq_foreach_tet([&](mtet::TetId tid, std::span<const VertexId, 4> data) {
         std::span<VertexId, 4> vs = mesh.get_tet(tid);
-        std::array<valarray<double>,4> vallPoints;
+        std::array<std::valarray<double>,4> vallPoints;
         for (int i = 0; i < 4; i++){
             vallPoints[i] = {0.0,0.0,0.0};
         }
@@ -582,9 +590,9 @@ int main(int argc, const char *argv[])
     // save statistics
     save_metrics("stats.json", tet_metric_labels, {(double)mesh.get_num_tets(), activeTet, min_rratio_all, min_rratio_active, (double)sub_call_two, (double) sub_call_three});
     // save the mesh output for isosurfacing tool
-    save_mesh_json("mesh.json", mesh);
+    //save_mesh_json("mesh.json", mesh);
     // save the mesh output for isosurfacing tool
-    save_function_json("function_value.json", mesh, vertex_func_grad_map, funcNum);
+    //save_function_json("function_value.json", mesh, vertex_func_grad_map, funcNum);
     //write mesh and active tets
     mtet::save_mesh("tet_mesh.msh", mesh);
     mtet::save_mesh("active_tets.msh", mesh, std::span<mtet::TetId>(activeTetId));
