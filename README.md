@@ -1,6 +1,6 @@
 # Adaptive Grid Generation
 
-The `isosurfacing` tool performs Longest Edge Bisection Refinement to generate an adaptive grid from an initial mesh and an implicit function, and by incorporating a [robust isosurfacing method](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main), we extract the surfaces for implicit complexes.
+This code implements the ACM SIGGRAPH 2024 paper titled [Adaptive grid generation for discretizing implicit complexes](https://dl.acm.org/doi/10.1145/3658215). Given one or multiple functions in 3D and desired type of implicit complex defined by these functions (e.g., implicit arrangement, material interface, CSG, or curve network), this algorithm generates an adaptive simplicial (tetrahedral) grid, which can then be used to discretize the implicit complex using this robust method [[hyperlink](https://github.com/duxingyi-charles/Robust-Implicit-Surface-Networks/tree/main)].
 
 ## Build
 
