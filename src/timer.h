@@ -8,26 +8,9 @@
 
 #include <chrono>
 #include <iostream>
-#include <nlohmann/json.hpp>
-#include <fstream>
+//#include "adaptive_grid_gen.h"
 
-///profiling the time of the entire subdivision process.
-///
-///an array of 8 {total time,time spent on single function, time spent on double functions, time spent on triple functions time spent on double functions' zero crossing test, time spent on three functions' zero crossing test, total subdivision time, total splitting time}
 const int timer_amount = 10;
-
-/// saves the timing profile to a file
-/// @param[in] time_labels            The labels of the timings.
-/// @param[in] timings           The values of the timings, corresponding to the lables.
-/// @param[in] filename            The name of the output file.
-///
-/// @return         Whether this saving procedure is successful.
-bool save_timings(const std::string& filename,
-                  const std::array<std::string, timer_amount>& time_label,
-                  const std::array<double, timer_amount>& timings);
-
-/// An array storing the most current time profling
-extern std::array<double, timer_amount> profileTimer;
 
 /// The labels for timing stats.
 const std::array<std::string, timer_amount> time_label = {"total time: ",
@@ -116,7 +99,7 @@ public:
                 m_timeProfile[9] += ms;
                 break;
             default:
-                std::cout << "no matching time profile identifier" << std::endl;
+                throw std::runtime_error("no matching time profile identifier");
         }
         m_Func(m_timeProfile);
     }

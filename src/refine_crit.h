@@ -15,17 +15,20 @@
 //#define Only_Geometry_3
 //#define CSG_Base
 //#define MI_Base
-#include <iostream>
-#include <string>
-#include <valarray>
 #include <array>
 #include <SmallVector.h>
-#include <timer.h>
+//#include "timer.h"
 #include <convex_hull_membership/contains.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <Eigen/Sparse>
+#include <Eigen/LU>
 
+/// Enums for the current settings of implicit complexes
+enum geo_obj {
+    IA,
+    CSG,
+    MI
+};
 
 /// Two checks for each grid element: zero-crossing check and distance check. This function performs these two checks under the setting of implicit arrangement(IA), constructive solid geometry(CSG) and their curve networks.
 ///
@@ -38,11 +41,23 @@
 /// @return         A `bool` represents whether the tet is "refinable", i.e., passing the zero-crossing test and contains error greater than `threshold`.
 ///
 ///
-bool subTet(const std::array<std::array<double, 3>,4> &pts,
+bool critIA(const std::array<std::array<double, 3>,4> &pts,
             const llvm_vecsmall::SmallVector<std::array<double,4>, 20> &vals,
             const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> &grads,
             const double threshold,
-            bool& active);
+            bool &active,
+            int &sub_call_two,
+            int &sub_call_three);
+
+bool critCSG(
+            const std::array<std::array<double, 3>,4> &pts,
+            const llvm_vecsmall::SmallVector<std::array<double,4>, 20> &vals,
+            const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> &grads,const std::function<std::pair<std::array<double, 2>, llvm_vecsmall::SmallVector<int, 20>>(llvm_vecsmall::SmallVector<std::array<double, 2>, 20>)> csg_func,
+            const double threshold,
+            bool& active,
+            int &sub_call_two,
+             int &sub_call_three);
+
 /// Two checks for each grid element: zero-crossing check and distance check. This function performs these two checks under the setting of material interface(MI) and its curve networks.
 ///
 /// @param[in] pts          4 arrays of three-tuples represent the coordinate of tet vertices. Each subarray represents a coordinate.
@@ -54,120 +69,23 @@ bool subTet(const std::array<std::array<double, 3>,4> &pts,
 /// @return         A `bool` represents whether the tet is "refinable", i.e., passing the zero-crossing test and contains error greater than `threshold`.
 ///
 ///
-bool subMI(const std::array<std::array<double, 3>,4> &pts,
+bool critMI(const std::array<std::array<double, 3>,4> &pts,
            const llvm_vecsmall::SmallVector<std::array<double,4>, 20> &vals,
            const llvm_vecsmall::SmallVector<std::array<std::array<double, 3>,4>, 20> &grads,
            const double threshold,
-           bool& active);
+           bool& active,
+           int &sub_call_two,
+           int &sub_call_three);
 
-/// Enums for the current settings of implicit complexes
-enum geo_obj {
-    IA,
-    CSG,
-    MI
-};
-
-/// Enums for CSG boolean operations
-enum csg_operations{
-    Intersection,
-    Union,
-    Negation
-};
-
-
-///Defines the enumeration of CSG operations. In the data structure, Intersection is 0, Union is 1, and Negation is 2.
-struct csg_unit{
-    int operation;
-    std::array<int, 2> elements;
-};
-
-///load the csg file
-///
-///@param[in] filename          The name of the input CSG tree
-///@param[out] tree         The loaded tree structure
-///
-bool load_csgTree(const std::string filename, llvm_vecsmall::SmallVector<csg_unit, 20>& tree);
-
-/// an iterative algortihm that traverses through the csg tree
-///
-///@param[in] csgTree           The CSG structure: a list of csg units
-///@param[in] curNode           The current index in the csg structure
-///@param[in] funcInt           The intervals of all the functions
-///
-///@param[out] std::pair
-std::pair<std::array<double, 2>, llvm_vecsmall::SmallVector<int, 20>> iterTree(const llvm_vecsmall::SmallVector<csg_unit, 20>csgTree,const int curNode,const llvm_vecsmall::SmallVector<std::array<double , 2>, 20> funcInt);
-
-/// Below are the variable/constant/function definitions that will only be used in `subdivide_multi.cpp`
-///
-///
-/// Stores the index of permutations of n less than `funcNum` for the use in `subTet` and `subMI` functions.
-///
-extern llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<std::array<int, 4>, 100>, 3>, 20> multiple_indices;
-
-/// Definations of varialbes before the computations to avoid repetitive defnitions.
-extern int sub_call_two;
-extern int sub_call_three;
-extern int GLOBAL_METHOD;
 extern bool curve_network;
-extern llvm_vecsmall::SmallVector<csg_unit, 20> GLOBAL_CSGTREE;
-extern llvm_vecsmall::SmallVector<std::array<double, 20>, 20> valList;
-extern llvm_vecsmall::SmallVector<std::array<double, 16>, 20> diffList;
-extern llvm_vecsmall::SmallVector<bool, 20> activeTF;
-extern llvm_vecsmall::SmallVector<std::array<double , 2>, 20> funcInt;
-extern llvm_vecsmall::SmallVector<std::array<double, 3>, 20> gradList;
-extern size_t funcNum;
 
-/// Constant coefficient to obtain linear interpolated values at each bezier control points
-const std::array<std::array<double, 4>, 16> coeff = {{{2, 1, 0, 0}, {2, 0, 1, 0}, {2, 0, 0, 1}, {0, 2, 1, 0},{0, 2, 0, 1}, {1, 2, 0, 0}, {0, 0, 2, 1}, {1, 0, 2, 0},{0, 1, 2, 0}, {1, 0, 0, 2}, {0, 1, 0, 2}, {0, 0, 1, 2},{0, 1, 1, 1}, {1, 0, 1, 1}, {1, 1, 0, 1}, {1, 1, 1, 0}}};
-
-/// Below are the local functions servicing `subTet` and `subMI`
-
-/// returns a `bool` value that `true` represents positive and `false` represents negative of the input value `x`.
-bool get_sign(double x);
-
-/// returns the dot product of input arrays `a` and `b`.
-double dot(const std::array<double, 3> &a, const std::array<double, 3> &b);
-
-/// returns the dot product of input arrays `a` and `b`.
-double dot(const std::array<double, 2> &a, const std::array<double, 2> &b);
-
-/// returns the dot product of input SmallVector `a` and `b`.
-double dot(const llvm_vecsmall::SmallVector<double, 20> &a, llvm_vecsmall::SmallVector<double, 20> &b);
-
-/// returns the norm of the input array `a` where it represents a vector in 3D.
-double norm(const std::array<double, 3> &a);
-
-/// returns a vector in space by subtracting a 3D coordinate `p2` from `p1`.
-std::array<double, 3> getVec(const std::array<double, 3> &p1, const std::array<double, 3> &p2);
-
-
-/// returns a vector in space by subtracting a 3D coordinate `p2` from `p1`. Output is in Eigen vector.
-Eigen::Vector3d getEigenVec(const std::array<double, 3> &p1, const std::array<double, 3> &p2);
-
-/// returns a perpendicular vector for the 2D vector `a`.
-std::array<double, 2> perp(const std::array<double, 2> &a);
-
-/// returns the cross product of 3D vectors `a` and `b`.
-llvm_vecsmall::SmallVector<double, 20> cross(const std::array<double, 3> &a, const std::array<double, 3> &b);
-
-/// returns the determinant of the matrix {vec1, vec2, vec3}. Under testing, such computation is faster than turning arrays into `Eigen::Vec3d`
-double det(const std::array<double, 3>& vec1,
-           const std::array<double, 3>& vec2,
-           const std::array<double, 3>& vec3);
-/// returns the determinant of the matrix {vec1, vec2}
-double det(const std::array<double, 2>& vec1,
-           const std::array<double, 2>& vec2);
-
-/// transforms the input of errors at 20 bezier control points for two functions into the correct format that `convex_hull_membership` library can use.
-std::array<double, 40> transpose2d(const std::array<std::array<double, 20>, 2>& matrix);
-
-/// transforms the input of errors at 20 bezier control points for three functions into the correct format that `convex_hull_membership` library can use.
-std::array<double, 60> transpose3d(const std::array<std::array<double, 20>, 3>& matrix);
-
-/// previous matrix multiple function. Now it's replaced by `eigen` package.
-llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> matrixMultiply(const llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> &matA, const llvm_vecsmall::SmallVector<llvm_vecsmall::SmallVector<double, 20>, 20> &matB);
-
-
+/// Below are is the activation function that will only be used in `grid_refine` file
+///
+///
+/// Stores the index of permutations of n less than `funcNum` for the use in above functions.
+///
+void init_multi(const size_t funcNum,
+                const int mode);
 
 //const Eigen::Matrix<double, 16, 4> linear_coeff {{2, 1, 0, 0}, {2, 0, 1, 0}, {2, 0, 0, 1}, {0, 2, 1, 0},{0, 2, 0, 1}, {1, 2, 0, 0}, {0, 0, 2, 1}, {1, 0, 2, 0},{0, 1, 2, 0}, {1, 0, 0, 2}, {0, 1, 0, 2}, {0, 0, 1, 2},{0, 1, 1, 1}, {1, 0, 1, 1}, {1, 1, 0, 1}, {1, 1, 1, 0}};
 

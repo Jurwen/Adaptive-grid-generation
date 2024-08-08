@@ -5,11 +5,10 @@
 //  Created by Yiwen Ju on 12/28/23.
 #pragma once
 
-#include <mtet/mtet.h>
-#include <mtet/io.h>
+
 #include <valarray>
-#include <nlohmann/json.hpp>
-#include <fstream>
+#include "adaptive_grid_gen.h"
+
 
 /// Labels for grid stats.
 const std::array<std::string, 6> tet_metric_labels = {"total tet number: ",
@@ -26,16 +25,6 @@ const std::array<std::string, 6> tet_metric_labels = {"total tet number: ",
 ///@return          radius ratio of this tet.
 ///
 double tet_radius_ratio(const std::array<std::valarray<double>,4> &pts);
-
-/// saves the tet metrics to a file
-/// @param[in] tet_metric_labels            The labels of the metrics.
-/// @param[in] tet_metric           The values of the metrics, corresponding to the lables.
-/// @param[in] filename            The name of the output file.
-///
-/// @return         Whether this saving procedure is successful.
-bool save_metrics(const std::string& filename,
-                  const std::array<std::string, 6>& tet_metric_labels,
-                  const std::valarray<double>& tet_metric);
 
 /// returns the dot product of input arrays `a` and `b`.
 double dot(const std::valarray<double> &a, const std::valarray<double> &b);
