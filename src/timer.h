@@ -4,24 +4,16 @@
 //
 //  Created by Yiwen Ju on 12/20/23.
 //
-#ifndef timer_h
-#define timer_h
+#pragma once
 
 #include <chrono>
 #include <iostream>
-#include <nlohmann/json.hpp>
-#include <fstream>
+//#include "adaptive_grid_gen.h"
 
-//profiling the time of the entire subdivision process.
-//an array of 8 {total time,time spent on single function, time spent on double functions, time spent on triple functions
-//, time spent on double functions' zero crossing test, time spent on three functions' zero crossing test, total subdivision time, total splitting time}
-
-//currently, the zero crossing test is using linear programming based on Gurobi package.
 const int timer_amount = 10;
 
-std::array<double, timer_amount> profileTimer = {0,0,0,0,0,0,0,0,0,0};
-
-std::array<std::string, timer_amount> time_label = {"total time: ",
+/// The labels for timing stats.
+const std::array<std::string, timer_amount> time_label = {"total time: ",
     "get active multiples: ",
     "single func: ",
     "two func: ",
@@ -32,6 +24,8 @@ std::array<std::string, timer_amount> time_label = {"total time: ",
     "evaluations: ",
     "splitting: "
 };
+
+/// the enum for the timing labels.
 enum timeProfileName{
     total_time,
     getActiveMuti,
@@ -45,13 +39,12 @@ enum timeProfileName{
     splitting
 };
 
-std::array<double, timer_amount> combine_timer (const std::array<double, timer_amount> &profile, const std::array<double, timer_amount> &timer){
-    std::array<double, timer_amount> ret;
-    for (int i = 0; i < timer_amount; i++){
-        ret[i] = profile[i] + timer[i];
-    }
-    return ret;
-}
+/// add the timer recorded to the profiling timer.
+/// @param[in] profile          The most current time profile.
+/// @param[in] timer            The time recorded from this temporary timer.
+///
+/// @return         The updated time profile. 
+std::array<double, timer_amount> combine_timer (const std::array<double, timer_amount> &profile, const std::array<double, timer_amount> &timer);
 
 template<typename Fn>
 class Timer
@@ -106,7 +99,7 @@ public:
                 m_timeProfile[9] += ms;
                 break;
             default:
-                std::cout << "no matching time profile identifier" << std::endl;
+                throw std::runtime_error("no matching time profile identifier");
         }
         m_Func(m_timeProfile);
     }
@@ -119,24 +112,4 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> starterTime;
 };
 
-bool save_timings(const std::string& filename,
-                  const std::array<std::string, timer_amount>& time_label,
-                  const std::array<double, timer_amount>& timings)
-{
-    using json = nlohmann::json;
-    std::ofstream fout(filename.c_str(),std::ios::app);
-    //fout.open(filename.c_str(),std::ios::app);
-    json jOut;
-    for (size_t i = 0; i < timings.size(); ++i) {
-        jOut[time_label[i]] = timings[i];
-    }
-    //
-    fout << jOut << std::endl;
-    fout.close();
-    return true;
-    
-    
-}
-
-#endif /*timer_h*/
 
